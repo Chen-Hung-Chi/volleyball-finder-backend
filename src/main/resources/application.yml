@@ -1,0 +1,62 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:test}
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/volleyball_finder?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Taipei&allowPublicKeyRetrieval=true}
+    username: ${MYSQLUSER:root}
+    password: ${MYSQLPASSWORD:root}
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Taipei
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      encoding: UTF-8
+
+app:
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:3000}
+  jwt:
+    secret: ${JWT_SECRET:W8yKx72qzNfL4cRjTgHv9BmQYeUaPdVoXcLtRsMjEnGbKhZwAvCuTxNrJiQwLmEz}
+    expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.volleyball.finder.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+    cache-enabled: false
+    default-enum-type-handler: org.apache.ibatis.type.EnumOrdinalTypeHandler
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+logging:
+  level:
+    root: INFO
+    com.volleyball.finder: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: TRACE
+    org.springframework.security.oauth2: DEBUG
+    com.nimbusds: DEBUG
+
+resilience4j:
+  ratelimiter:
+    instances:
+      globalLimiter:
+        limit-for-period: 120         # 每個週期允許的請求數
+        limit-refresh-period: 1m      # 限流周期
+        timeout-duration: 0           # 若已達限制，等待多久（0 = 不等待直接失敗）
