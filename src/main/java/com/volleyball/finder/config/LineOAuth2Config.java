@@ -1,5 +1,6 @@
 package com.volleyball.finder.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
@@ -11,6 +12,15 @@ import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 @Configuration
 public class LineOAuth2Config {
 
+    @Value("${line.client-id}")
+    private String clientId;
+
+    @Value("${line.client-secret}")
+    private String clientSecret;
+
+    @Value("${app.backend.url}")
+    private String backendUrl;
+
     @Bean
     public ClientRegistrationRepository clientRegistrationRepository() {
         return new InMemoryClientRegistrationRepository(lineClientRegistration());
@@ -18,11 +28,11 @@ public class LineOAuth2Config {
 
     private ClientRegistration lineClientRegistration() {
         return ClientRegistration.withRegistrationId("line")
-                .clientId("2007160888")
-                .clientSecret("2c74578388f89fc000d8ab5daa147660")
+                .clientId(clientId)
+                .clientSecret(clientSecret)
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .redirectUri("{baseUrl}/login/oauth2/code/line")
+                .redirectUri(backendUrl + "/login/oauth2/code/line")
                 .scope("profile")
                 .authorizationUri("https://access.line.me/oauth2/v2.1/authorize")
                 .tokenUri("https://api.line.me/oauth2/v2.1/token")

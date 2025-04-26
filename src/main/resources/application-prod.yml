@@ -1,0 +1,8 @@
+logging:
+  level:
+    root: WARN
+    org.springframework.web: WARN
+    com.volleyball.finder: WARN
+    org.springframework.security: ERROR
+    org.springframework.security.oauth2: ERROR
+    com.nimbusds: ERROR

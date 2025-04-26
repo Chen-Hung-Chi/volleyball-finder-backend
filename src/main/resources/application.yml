@@ -22,6 +22,8 @@ spring:
 app:
   frontend:
     url: ${FRONTEND_URL:http://localhost:3000}
+  backend:
+    url: ${BACKEND_URL:http://localhost:8080}
   jwt:
     secret: ${JWT_SECRET:W8yKx72qzNfL4cRjTgHv9BmQYeUaPdVoXcLtRsMjEnGbKhZwAvCuTxNrJiQwLmEz}
     expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
@@ -41,6 +43,10 @@ mybatis-plus:
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
+
+line:
+  client-id: 2007160888
+  client-secret: 2c74578388f89fc000d8ab5daa147660
 
 logging:
   level:
