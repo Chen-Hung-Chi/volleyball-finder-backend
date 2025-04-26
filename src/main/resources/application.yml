@@ -8,7 +8,7 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/volleyball_finder?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Taipei&allowPublicKeyRetrieval=true}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://root:root@localhost:3306/volleyball_finder_test}
 
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss

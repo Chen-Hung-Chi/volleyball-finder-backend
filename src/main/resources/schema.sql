@@ -1,4 +1,4 @@
--- ─────────────────── 先清除舊表 ───────────────────
+-- ─────────────────── Drop old tables first ───────────────────
 DROP TABLE IF EXISTS notification;
 DROP TABLE IF EXISTS activity_participants;
 DROP TABLE IF EXISTS activities;
@@ -26,51 +26,51 @@ CREATE TABLE IF NOT EXISTS users
 -- ─────────────────── activities ───────────────────
 CREATE TABLE IF NOT EXISTS activities
 (
-    id                   BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '活動 ID，自動遞增主鍵',
-    title                VARCHAR(50)                    NOT NULL COMMENT '活動標題',
-    description          TEXT COMMENT '活動描述',
-    date_time            DATETIME                       NOT NULL COMMENT '活動開始時間',
-    duration             INT                                     DEFAULT 60 COMMENT '活動持續時間（分鐘），預設為 60',
-    location             VARCHAR(50)                    NOT NULL COMMENT '活動地點',
-    net_type             ENUM ('MEN', 'WOMEN', 'MIXED') NOT NULL DEFAULT 'MEN' COMMENT '網高類型（MEN: 男網, WOMEN: 女網, MIXED: 綜合網）',
-    max_participants     INT                            NOT NULL COMMENT '最多報名人數',
-    current_participants INT                            NOT NULL DEFAULT 1 COMMENT '現在報名人數',
-    male_quota           INT                                     DEFAULT 0 COMMENT '男生名額上限（-1: 禁止, 0: 不限制, >0: 限制）',
-    female_quota         INT                                     DEFAULT 0 COMMENT '女生名額上限（-1: 禁止, 0: 不限制, >0: 限制）',
-    male_count           INT                                     DEFAULT 0 COMMENT '目前報名的男生人數',
-    female_count         INT                                     DEFAULT 0 COMMENT '目前報名的女生人數',
-    female_priority      BOOLEAN                        NOT NULL DEFAULT FALSE COMMENT '女生優先候補（true 為啟用）',
-    amount               INT                                     DEFAULT 0 COMMENT '報名費用',
+    id                   BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'Activity ID, auto-increment primary key',
+    title                VARCHAR(50)                    NOT NULL COMMENT 'Activity title',
+    description          TEXT COMMENT 'Activity description',
+    date_time            DATETIME                       NOT NULL COMMENT 'Activity start time',
+    duration             INT                                     DEFAULT 60 COMMENT 'Activity duration (minutes), default 60',
+    location             VARCHAR(50)                    NOT NULL COMMENT 'Activity location',
+    net_type             ENUM ('MEN', 'WOMEN', 'MIXED') NOT NULL DEFAULT 'MEN' COMMENT 'Net height type (MEN, WOMEN, MIXED)',
+    max_participants     INT                            NOT NULL COMMENT 'Maximum number of participants',
+    current_participants INT                            NOT NULL DEFAULT 1 COMMENT 'Current number of participants',
+    male_quota           INT                                     DEFAULT 0 COMMENT 'Male quota limit (-1: forbidden, 0: unlimited, >0: limit)',
+    female_quota         INT                                     DEFAULT 0 COMMENT 'Female quota limit (-1: forbidden, 0: unlimited, >0: limit)',
+    male_count           INT                                     DEFAULT 0 COMMENT 'Current count of male participants',
+    female_count         INT                                     DEFAULT 0 COMMENT 'Current count of female participants',
+    female_priority      BOOLEAN                        NOT NULL DEFAULT FALSE COMMENT 'Female priority for waitlist (true if enabled)',
+    amount               INT                                     DEFAULT 0 COMMENT 'Registration fee',
 
-    city                 VARCHAR(50)                    NOT NULL COMMENT '城市',
-    district             VARCHAR(50)                    NOT NULL COMMENT '行政區',
+    city                 VARCHAR(50)                    NOT NULL COMMENT 'City',
+    district             VARCHAR(50)                    NOT NULL COMMENT 'District',
 
-    created_by           BIGINT                         NOT NULL COMMENT '活動發起人 ID',
-    created_at           DATETIME                                DEFAULT CURRENT_TIMESTAMP COMMENT '建立時間',
-    updated_at           DATETIME                                DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
+    created_by           BIGINT                         NOT NULL COMMENT 'Activity creator ID',
+    created_at           DATETIME                                DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation time',
+    updated_at           DATETIME                                DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Update time',
 
     FOREIGN KEY (created_by) REFERENCES users (id),
     INDEX idx_activities_date_time (date_time DESC)
-) COMMENT ='排球活動表';
+) COMMENT ='Volleyball activities table';
 
 -- ─────────────────── activity_participants ───────────────────
 CREATE TABLE IF NOT EXISTS activity_participants
 (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '參與紀錄 ID，自動遞增',
-    activity_id BIGINT NOT NULL COMMENT '活動 ID',
-    user_id     BIGINT NOT NULL COMMENT '使用者 ID',
-    is_captain  BOOLEAN  DEFAULT FALSE COMMENT '是否為隊長',
-    is_waiting  BOOLEAN  DEFAULT FALSE COMMENT '是否為候補（true 為候補）',
-    is_deleted  BOOLEAN  DEFAULT FALSE COMMENT '是否已取消（軟刪除）',
-    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '報名時間',
-    updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最後更新時間',
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'Participation record ID, auto-increment',
+    activity_id BIGINT NOT NULL COMMENT 'Activity ID',
+    user_id     BIGINT NOT NULL COMMENT 'User ID',
+    is_captain  BOOLEAN  DEFAULT FALSE COMMENT 'Is captain',
+    is_waiting  BOOLEAN  DEFAULT FALSE COMMENT 'Is on waitlist (true if waitlisted)',
+    is_deleted  BOOLEAN  DEFAULT FALSE COMMENT 'Is cancelled (soft delete)',
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Registration time',
+    updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update time',
 
     FOREIGN KEY (activity_id) REFERENCES activities (id),
     FOREIGN KEY (user_id) REFERENCES users (id),
     UNIQUE KEY unique_participant (activity_id, user_id)
 );
 
--- 快速查找指定活動與使用者是否為隊長
+-- Index for quickly finding if a user is the captain for an activity
 CREATE INDEX idx_ap_activity_user_captain
     ON activity_participants (activity_id, user_id, is_captain);
 
@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS notification
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
 
--- ─────────────────── 測試資料：100 位使用者 ───────────────────
+-- ─────────────────── Test Data: 100 Users ───────────────────
 INSERT INTO users (line_id, real_name, nickname, position, level, volleyball_age,
                    avatar, city, district, introduction)
 SELECT CONCAT('line_id_', n),
@@ -146,7 +146,7 @@ FROM (SELECT 1 + numbers.n + seq.n * 10 AS n
             UNION
             SELECT 9) seq) numbers;
 
--- ─────────────── 測試資料：100 場活動 ───────────────
+-- ─────────────────── Test Data: 100 Activities ───────────────────
 INSERT INTO activities (title, description, date_time, duration, location,
                         max_participants, current_participants, amount,
                         city, district, created_by,
@@ -155,10 +155,10 @@ SELECT CONCAT('Volleyball Game ', n),
        CONCAT('Description for game ', n),
        CASE
            WHEN n <= 50
-               THEN DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 30) DAY) -- 過去
-           ELSE DATE_ADD(NOW(), INTERVAL FLOOR(RAND() * 30) DAY) -- 未來
+               THEN DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 30) DAY) -- Past
+           ELSE DATE_ADD(NOW(), INTERVAL FLOOR(RAND() * 30) DAY) -- Future
            END,
-       FLOOR(RAND() * 180) + 30,  -- duration: 30~210 分鐘
+       FLOOR(RAND() * 180) + 30,  -- duration: 30-210 minutes
        CONCAT('Location ', n),
        12,
        CASE WHEN n <= 10 THEN 12 ELSE FLOOR(RAND() * 12) END,
@@ -209,7 +209,7 @@ FROM (SELECT 1 + numbers.n + seq.n * 10 AS n
             SELECT 8
             UNION
             SELECT 9) seq) numbers;
--- ─────────────────── 測試資料：參與者 ───────────────────
+-- ─────────────────── Test Data: Participants ───────────────────
 INSERT INTO activity_participants (activity_id, user_id, is_captain)
 WITH RECURSIVE
     activity_users AS (SELECT a.id                                                  AS activity_id,
@@ -226,9 +226,9 @@ WITH RECURSIVE
 SELECT activity_id, user_id, FALSE
 FROM filtered_users
 WHERE RAND() < 0.7;
--- 70% 成為參與者
+-- 70% become participants
 
--- 確保活動建立者一定是參與者／隊長
+-- Ensure activity creator is always a participant/captain
 INSERT INTO activity_participants (activity_id, user_id, is_captain)
 SELECT id, created_by, TRUE
 FROM activities;
