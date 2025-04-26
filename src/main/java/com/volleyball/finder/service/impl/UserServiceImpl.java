@@ -6,7 +6,6 @@ import com.volleyball.finder.entity.User;
 import com.volleyball.finder.error.ApiException;
 import com.volleyball.finder.error.ErrorCode;
 import com.volleyball.finder.mapper.UserMapper;
-import com.volleyball.finder.security.CustomUserDetails;
 import com.volleyball.finder.service.UserService;
 import com.volleyball.finder.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -103,5 +102,14 @@ public class UserServiceImpl implements UserService {
         return Optional.ofNullable(lineId)
                 .flatMap(this::findByLineId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND, "尚未登入或找不到用戶資料"));
+    }
+
+    @Override
+    public boolean isNicknameTaken(String nickname) {
+        return userMapper.selectCount(
+                new LambdaQueryWrapper<User>()
+                        .eq(User::getNickname, nickname)
+                        .last("LIMIT 1")
+        ) > 0;
     }
 }

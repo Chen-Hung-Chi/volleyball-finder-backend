@@ -4,12 +4,11 @@ server:
     context-path: /
 spring:
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:test}
+    active: ${SPRING_PROFILES_ACTIVE:local}
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://root:root@localhost:3306/volleyball_finder_test}
-
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Taipei
@@ -28,6 +27,10 @@ app:
     secret: ${JWT_SECRET:W8yKx72qzNfL4cRjTgHv9BmQYeUaPdVoXcLtRsMjEnGbKhZwAvCuTxNrJiQwLmEz}
     expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
 
+line:
+  client-id: ${LINE_CLIENT_ID}
+  client-secret: ${LINE_CLIENT_SECRET}
+
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.volleyball.finder.entity
@@ -43,19 +46,6 @@ mybatis-plus:
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
-
-line:
-  client-id: 2007160888
-  client-secret: 2c74578388f89fc000d8ab5daa147660
-
-logging:
-  level:
-    root: INFO
-    com.volleyball.finder: DEBUG
-    org.springframework.web: INFO
-    org.springframework.security: TRACE
-    org.springframework.security.oauth2: DEBUG
-    com.nimbusds: DEBUG
 
 resilience4j:
   ratelimiter:

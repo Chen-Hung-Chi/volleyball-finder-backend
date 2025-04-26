@@ -39,5 +39,7 @@ public interface UserService {
      * @throws IllegalStateException if no user is authenticated
      */
     User getCurrentUser();
+
+    boolean isNicknameTaken(String nickname);
 }
 

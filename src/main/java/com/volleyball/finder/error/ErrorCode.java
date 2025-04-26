@@ -13,6 +13,7 @@ public enum ErrorCode {
     // 2XXX – 使用者
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "用戶不存在"),
     USER_EXISTS(HttpStatus.CONFLICT, "用戶已存在"),
+    NICKNAME_EXISTS(HttpStatus.CONFLICT, "暱稱已存在"),
 
     // 3XXX – 活動
     ACTIVITY_NOT_FOUND(HttpStatus.NOT_FOUND, "活動不存在"),

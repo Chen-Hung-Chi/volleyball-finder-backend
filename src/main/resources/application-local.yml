@@ -1,0 +1,12 @@
+line:
+  client-id: 2007334537
+  client-secret: 5ed7051fbafc130d606882d1a7868377
+
+logging:
+  level:
+    root: INFO
+    com.volleyball.finder: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: TRACE
+    org.springframework.security.oauth2: DEBUG
+    com.nimbusds: DEBUG

@@ -1,7 +1,9 @@
 package com.volleyball.finder.controller;
 
+import com.volleyball.finder.dto.BooleanResponse;
 import com.volleyball.finder.dto.UserUpdateDto;
 import com.volleyball.finder.entity.User;
+import com.volleyball.finder.error.ApiException;
 import com.volleyball.finder.service.UserService;
 import com.volleyball.finder.util.CookieUtils;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,7 +33,6 @@ public class UserController {
 
     @GetMapping("/{id}")
     public ResponseEntity<User> getUser(@PathVariable Long id) {
-        log.info("GET /api/users/{}", id);
         return ResponseEntity.of(
                 java.util.Optional.ofNullable(userService.findById(id))
         );
@@ -41,7 +42,6 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<User> getCurrentUser() {
-        log.info("GET /api/users/me");
         return ResponseEntity.ok(userService.getCurrentUser());
     }
 
@@ -49,7 +49,6 @@ public class UserController {
 
     @PostMapping
     public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
-        log.info("POST /api/users");
         return ResponseEntity.ok(userService.createUser(user));
     }
 
@@ -58,7 +57,6 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<User> updateUser(@PathVariable Long id,
                                            @Valid @RequestBody UserUpdateDto userUpdateDto) {
-        log.info("PUT /api/users/{}", id);
         return ResponseEntity.ok(userService.updateUser(id, userUpdateDto));
     }
 
@@ -66,7 +64,6 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        log.info("DELETE /api/users/{}", id);
         userService.delete(id);
         return ResponseEntity.ok().build();
     }
@@ -80,5 +77,13 @@ public class UserController {
                 .status(HttpStatus.FOUND)        // 302
                 .header(HttpHeaders.LOCATION, frontendUrl)
                 .build();
+    }
+
+    /* 檢查暱稱是否已存在 -------------------------------------------------------- */
+
+    @GetMapping("/check-nickname")
+    public ResponseEntity<BooleanResponse> checkNicknameExists(@RequestParam String nickname) {
+        boolean available = !userService.isNicknameTaken(nickname);
+        return ResponseEntity.ok(new BooleanResponse(available));
     }
 }
