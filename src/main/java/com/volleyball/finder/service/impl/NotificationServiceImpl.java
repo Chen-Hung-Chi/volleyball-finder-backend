@@ -63,7 +63,7 @@ public class NotificationServiceImpl implements NotificationService {
         );
     }
 
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void sendActivityReminders() {
         log.info("Starting to send activity reminders...");
