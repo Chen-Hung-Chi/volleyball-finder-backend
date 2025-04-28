@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  */
 @Data
 @QuotaConstraint(message = "請檢查男女人數名額設定")
-public class ActivityUpdateDto {
+public class ActivityUpdateRequest {
 
     private Long id;
 

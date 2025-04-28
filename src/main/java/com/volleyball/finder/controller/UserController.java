@@ -1,19 +1,22 @@
 package com.volleyball.finder.controller;
 
 import com.volleyball.finder.dto.BooleanResponse;
-import com.volleyball.finder.dto.UserUpdateDto;
+import com.volleyball.finder.dto.UpdateFcmTokenRequest;
+import com.volleyball.finder.dto.UserUpdateRequest;
 import com.volleyball.finder.entity.User;
-import com.volleyball.finder.error.ApiException;
 import com.volleyball.finder.service.UserService;
 import com.volleyball.finder.util.CookieUtils;
+import com.volleyball.finder.util.SecurityUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,7 +45,11 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<User> getCurrentUser() {
-        return ResponseEntity.ok(userService.getCurrentUser());
+        User user = userService.getCurrentUser();
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        return ResponseEntity.ok(user);
     }
 
     /* 新增使用者 -------------------------------------------------------- */
@@ -56,8 +63,8 @@ public class UserController {
 
     @PutMapping("/{id}")
     public ResponseEntity<User> updateUser(@PathVariable Long id,
-                                           @Valid @RequestBody UserUpdateDto userUpdateDto) {
-        return ResponseEntity.ok(userService.updateUser(id, userUpdateDto));
+                                           @Valid @RequestBody UserUpdateRequest userUpdateRequest) {
+        return ResponseEntity.ok(userService.updateUser(id, userUpdateRequest));
     }
 
     /* 刪除使用者 -------------------------------------------------------- */
@@ -70,13 +77,21 @@ public class UserController {
 
     /* 登出 ------------------------------------------------------------ */
 
-    @GetMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletResponse response) {
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
+        // 清掉 token cookie
         CookieUtils.clear("token", response);
-        return ResponseEntity
-                .status(HttpStatus.FOUND)        // 302
-                .header(HttpHeaders.LOCATION, frontendUrl)
-                .build();
+
+        // 重要！SecurityContext清掉
+        SecurityContextHolder.clearContext();
+
+        // Optional: 如果你有session，要讓session失效
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+
+        return ResponseEntity.ok().build();
     }
 
     /* 檢查暱稱是否已存在 -------------------------------------------------------- */
@@ -85,5 +100,14 @@ public class UserController {
     public ResponseEntity<BooleanResponse> checkNicknameExists(@RequestParam String nickname) {
         boolean available = !userService.isNicknameTaken(nickname);
         return ResponseEntity.ok(new BooleanResponse(available));
+    }
+
+    /* 更新FCM token -------------------------------------------------------- */
+
+    @PatchMapping("/fcm-token")
+    public String updateFcmToken(@RequestBody UpdateFcmTokenRequest request) {
+        Long userId = SecurityUtils.getCurrentUserId(userService);
+        userService.updateFcmToken(userId, request.getFcmToken());
+        return "FCM Token updated successfully.";
     }
 }

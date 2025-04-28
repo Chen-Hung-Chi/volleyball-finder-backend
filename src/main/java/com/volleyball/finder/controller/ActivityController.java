@@ -2,7 +2,7 @@ package com.volleyball.finder.controller;
 
 import com.volleyball.finder.dto.ActivityParticipantDto;
 import com.volleyball.finder.dto.ActivitySearchRequest;
-import com.volleyball.finder.dto.ActivityUpdateDto;
+import com.volleyball.finder.dto.ActivityUpdateRequest;
 import com.volleyball.finder.dto.PageResponse;
 import com.volleyball.finder.entity.Activity;
 import com.volleyball.finder.security.CustomUserDetails;
@@ -52,8 +52,8 @@ public class ActivityController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Activity> updateActivity(@PathVariable Long id, @RequestBody ActivityUpdateDto activityUpdateDto) {
-        return ResponseEntity.ok(activityService.update(id, activityUpdateDto));
+    public ResponseEntity<Activity> updateActivity(@PathVariable Long id, @RequestBody ActivityUpdateRequest activityUpdateRequest) {
+        return ResponseEntity.ok(activityService.update(id, activityUpdateRequest));
     }
 
     @DeleteMapping("/{id}")

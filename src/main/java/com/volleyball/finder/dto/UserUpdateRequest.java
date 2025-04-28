@@ -6,7 +6,7 @@ import com.volleyball.finder.enums.Position;
 import lombok.Data;
 
 @Data
-public class UserUpdateDto {
+public class UserUpdateRequest {
     private String realName;
     private String nickname;
     private String avatar;

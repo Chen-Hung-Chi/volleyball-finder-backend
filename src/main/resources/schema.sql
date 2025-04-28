@@ -9,18 +9,26 @@ CREATE TABLE IF NOT EXISTS users
 (
     id             BIGINT AUTO_INCREMENT PRIMARY KEY,
     line_id        VARCHAR(255) NOT NULL UNIQUE,
+    fcm_token      VARCHAR(512),
     real_name      VARCHAR(255),
     nickname       VARCHAR(255),
     gender         ENUM ('MALE', 'FEMALE')                                 DEFAULT 'MALE',
     position       ENUM ('SPIKER', 'SETTER', 'LIBERO', 'NONE')             DEFAULT 'NONE',
     level          ENUM ('BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT') DEFAULT 'BEGINNER',
     volleyball_age INT                                                     DEFAULT 0,
-    avatar         VARCHAR(255),
+    avatar         VARCHAR(512),
     city           VARCHAR(50),
     district       VARCHAR(50),
     introduction   TEXT,
+
     created_at     DATETIME                                                DEFAULT CURRENT_TIMESTAMP,
-    updated_at     DATETIME                                                DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at     DATETIME                                                DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_nickname (nickname),
+    INDEX idx_city (city),
+    INDEX idx_district (district),
+    INDEX idx_line_id (line_id),
+    INDEX idx_created_at (created_at)
 );
 
 -- ─────────────────── activities ───────────────────

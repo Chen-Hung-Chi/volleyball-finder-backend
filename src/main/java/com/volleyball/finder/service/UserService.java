@@ -1,6 +1,6 @@
 package com.volleyball.finder.service;
 
-import com.volleyball.finder.dto.UserUpdateDto;
+import com.volleyball.finder.dto.UserUpdateRequest;
 import com.volleyball.finder.entity.User;
 
 import java.util.Optional;
@@ -25,7 +25,7 @@ public interface UserService {
      */
     User createUser(User user);
 
-    User updateUser(Long id, UserUpdateDto userUpdateDto);
+    User updateUser(Long id, UserUpdateRequest userUpdateRequest);
 
     /**
      * Delete a user by their ID
@@ -41,5 +41,9 @@ public interface UserService {
     User getCurrentUser();
 
     boolean isNicknameTaken(String nickname);
+
+    String getFcmToken(Long userId);
+
+    void updateFcmToken(Long userId, String fcmToken);
 }
 

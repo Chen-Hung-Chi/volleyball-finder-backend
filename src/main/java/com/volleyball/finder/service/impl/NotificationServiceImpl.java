@@ -1,6 +1,8 @@
 package com.volleyball.finder.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.Message;
 import com.volleyball.finder.dto.ActivityParticipantDto;
 import com.volleyball.finder.entity.Activity;
 import com.volleyball.finder.entity.Notification;
@@ -35,12 +37,38 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional
     public void sendNotification(Notification notification) {
         notificationMapper.insert(notification);
-        // 直接發送 WebSocket 通知
+
+        // --- 發送 WebSocket 通知 ---
         messagingTemplate.convertAndSendToUser(
                 notification.getUserId().toString(),
                 "/queue/notifications",
                 notification
         );
+
+        // --- 發送 FCM 通知 ---
+        sendFcmNotification(notification);
+    }
+
+    private void sendFcmNotification(Notification notification) {
+        try {
+            String targetFcmToken = userService.getFcmToken(notification.getUserId());
+
+            if (targetFcmToken == null || targetFcmToken.isEmpty()) {
+                log.warn("User {} has no FCM token, skipping FCM push", notification.getUserId());
+                return;
+            }
+
+            Message message = Message.builder()
+                    .putData("title", notification.getTitle())
+                    .putData("body", notification.getContent())
+                    .setToken(targetFcmToken)
+                    .build();
+
+            String response = FirebaseMessaging.getInstance().send(message);
+            log.info("Successfully sent FCM push: {}", response);
+        } catch (Exception e) {
+            log.error("Failed to send FCM push notification: {}", e.getMessage(), e);
+        }
     }
 
     @Override
@@ -76,7 +104,6 @@ public class NotificationServiceImpl implements NotificationService {
             return;
         }
 
-        // 使用虛擬線程執行器
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             for (Activity activity : tomorrowActivities) {
                 List<ActivityParticipantDto> participants = activityService.getActivityParticipants(activity.getId());
@@ -84,16 +111,15 @@ public class NotificationServiceImpl implements NotificationService {
                         activity.getTitle(), participants.size());
 
                 for (ActivityParticipantDto participant : participants) {
-                    // 提交任務到虛擬線程
                     executor.submit(() -> {
                         try {
                             Notification notification = new Notification();
                             notification.setUserId(participant.getUserId());
-                            notification.setTitle("活動提醒");
+                            notification.setTitle("【活動提醒】");
                             notification.setContent("""
-                                    提醒：您報名的活動「%s」將在明天舉行
-                                    時間：%s
-                                    地點：%s
+                                    【%s】
+                                     時間：【%s】
+                                     地點：【%s】
                                     """.formatted(
                                     activity.getTitle(),
                                     activity.getDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
@@ -116,6 +142,4 @@ public class NotificationServiceImpl implements NotificationService {
         }
         log.info("Finished sending activity reminders");
     }
-
-
-} 
+}

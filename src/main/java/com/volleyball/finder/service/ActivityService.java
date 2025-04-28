@@ -2,7 +2,7 @@ package com.volleyball.finder.service;
 
 import com.volleyball.finder.dto.ActivityParticipantDto;
 import com.volleyball.finder.dto.ActivitySearchRequest;
-import com.volleyball.finder.dto.ActivityUpdateDto;
+import com.volleyball.finder.dto.ActivityUpdateRequest;
 import com.volleyball.finder.dto.PageResponse;
 import com.volleyball.finder.entity.Activity;
 
@@ -14,7 +14,7 @@ public interface ActivityService {
     List<Activity> findAll(Long userId);
     List<Activity> findByUserId(Long userId);
     Activity create(Activity activity);
-    Activity update(Long id, ActivityUpdateDto activityUpdateDto);
+    Activity update(Long id, ActivityUpdateRequest activityUpdateRequest);
     void delete(Long id);
     void joinActivity(Long activityId, Long userId);
     void leaveActivity(Long activityId, Long userId);

@@ -3,6 +3,9 @@ spring:
     init:
       mode: never
 
+firebase:
+  service-account: ${FIREBASE_SERVICE_ACCOUNT}
+
 logging:
   level:
     root: WARN

@@ -1,7 +1,8 @@
 package com.volleyball.finder.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.volleyball.finder.dto.UserUpdateDto;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.volleyball.finder.dto.UserUpdateRequest;
 import com.volleyball.finder.entity.User;
 import com.volleyball.finder.error.ApiException;
 import com.volleyball.finder.error.ErrorCode;
@@ -61,7 +62,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public User updateUser(Long id, UserUpdateDto dto) {
+    public User updateUser(Long id, UserUpdateRequest dto) {
         if (dto == null || id == null) {
             throw new ApiException(ErrorCode.INVALID_REQUEST, "用戶或用戶 ID 不可為空");
         }
@@ -111,5 +112,19 @@ public class UserServiceImpl implements UserService {
                         .eq(User::getNickname, nickname)
                         .last("LIMIT 1")
         ) > 0;
+    }
+
+    @Override
+    public String getFcmToken(Long userId) {
+        User user = userMapper.selectById(userId);
+        return user != null ? user.getFcmToken() : null;
+    }
+
+    @Override
+    @Transactional
+    public void updateFcmToken(Long userId, String fcmToken) {
+        userMapper.update(null, new UpdateWrapper<User>()
+                .eq("id", userId)
+                .set("fcm_token", fcmToken));
     }
 }

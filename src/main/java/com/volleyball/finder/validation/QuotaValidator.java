@@ -1,14 +1,14 @@
 package com.volleyball.finder.validation;
 
 
-import com.volleyball.finder.dto.ActivityUpdateDto;
+import com.volleyball.finder.dto.ActivityUpdateRequest;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-public class QuotaValidator implements ConstraintValidator<QuotaConstraint, ActivityUpdateDto> {
+public class QuotaValidator implements ConstraintValidator<QuotaConstraint, ActivityUpdateRequest> {
 
     @Override
-    public boolean isValid(ActivityUpdateDto dto, ConstraintValidatorContext context) {
+    public boolean isValid(ActivityUpdateRequest dto, ConstraintValidatorContext context) {
         if (dto.getMaleQuota() == null || dto.getFemaleQuota() == null || dto.getMaxParticipants() == null)
             return true;
 

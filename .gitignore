@@ -68,4 +68,7 @@ ehthumbs.db
 Thumbs.db
 
 # Misc
-*.swp 
+*.swp
+
+# Local application config
+application-local.yml

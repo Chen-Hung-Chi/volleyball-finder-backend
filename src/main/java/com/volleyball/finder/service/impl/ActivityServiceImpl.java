@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.volleyball.finder.dto.ActivityParticipantDto;
 import com.volleyball.finder.dto.ActivitySearchRequest;
-import com.volleyball.finder.dto.ActivityUpdateDto;
+import com.volleyball.finder.dto.ActivityUpdateRequest;
 import com.volleyball.finder.dto.PageResponse;
 import com.volleyball.finder.entity.Activity;
 import com.volleyball.finder.entity.ActivityParticipants;
@@ -80,8 +80,8 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     @Transactional
-    public Activity update(Long id, ActivityUpdateDto activityUpdateDto) {
-        log.info("activityUpdateDto: {}", activityUpdateDto);
+    public Activity update(Long id, ActivityUpdateRequest activityUpdateRequest) {
+        log.info("activityUpdateDto: {}", activityUpdateRequest);
         Long userId = SecurityUtils.getCurrentUserId(userService);
 
         Activity existing = activityMapper.selectById(id);
@@ -93,7 +93,7 @@ public class ActivityServiceImpl implements ActivityService {
             throw new ApiException(ErrorCode.FORBIDDEN, "你不是活動發起人");
         }
 
-        BeanUtils.copyProperties(activityUpdateDto, existing, "id");
+        BeanUtils.copyProperties(activityUpdateRequest, existing, "id");
         activityMapper.updateById(existing);
         return existing;
     }

@@ -18,6 +18,7 @@ public class User {
     private Long id;
     @NotBlank
     private String lineId;
+    private String fcmToken;
     private String realName;
     private String nickname;
     private Gender gender;
