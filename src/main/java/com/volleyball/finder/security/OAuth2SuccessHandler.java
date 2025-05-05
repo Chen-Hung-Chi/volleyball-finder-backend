@@ -55,8 +55,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         // ① 產生 JWT，寫入安全 Cookie
         String jwt = jwtService.generateToken(user);
-        resp.addCookie(CookieUtils.build(TOKEN_COOKIE, jwt, ONE_WEEK, true));
-
+        CookieUtils.addCookie(resp, TOKEN_COOKIE, jwt, ONE_WEEK);
         // ② 清掉 Spring Security 的 session attr
         clearAuthenticationAttributes(req);
 

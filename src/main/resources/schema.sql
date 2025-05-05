@@ -2,6 +2,7 @@
 DROP TABLE IF EXISTS notification;
 DROP TABLE IF EXISTS activity_participants;
 DROP TABLE IF EXISTS activities;
+DROP TABLE IF EXISTS sponsors;
 DROP TABLE IF EXISTS users;
 
 -- ─────────────────── users ───────────────────
@@ -12,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users
     fcm_token      VARCHAR(512),
     real_name      VARCHAR(255),
     nickname       VARCHAR(255),
+    role           ENUM ('USER', 'SPONSOR', 'ADMIN')                       DEFAULT 'USER',
     gender         ENUM ('MALE', 'FEMALE')                                 DEFAULT 'MALE',
     position       ENUM ('SPIKER', 'SETTER', 'LIBERO', 'NONE')             DEFAULT 'NONE',
     level          ENUM ('BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT') DEFAULT 'BEGINNER',
@@ -30,6 +32,32 @@ CREATE TABLE IF NOT EXISTS users
     INDEX idx_line_id (line_id),
     INDEX idx_created_at (created_at)
 );
+
+-- ─────────────────── sponsors ───────────────────
+CREATE TABLE IF NOT EXISTS sponsors
+(
+    id                      BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '贊助商主鍵 ID',
+    user_id                 BIGINT       NOT NULL COMMENT '對應的使用者 ID（sponsors 登入帳號）',
+    name                    VARCHAR(255) NOT NULL COMMENT '贊助商名稱（如球館或品牌名稱）',
+    contact_email           VARCHAR(255) COMMENT '聯絡用電子信箱',
+    phone                   VARCHAR(50) COMMENT '聯絡電話',
+    description             TEXT COMMENT '贊助商介紹/描述',
+    logo_url                VARCHAR(512) COMMENT 'Logo 圖片網址',
+    website_url             VARCHAR(512) COMMENT '網站連結',
+    is_active               BOOLEAN                        DEFAULT TRUE COMMENT '是否啟用（可用來停用贊助商帳號）',
+    use_line_pay            BOOLEAN                        DEFAULT FALSE COMMENT '是否啟用 LINE Pay 功能',
+    line_pay_channel_id     VARCHAR(255) COMMENT 'LINE Pay Channel ID',
+    line_pay_channel_secret VARBINARY(255) COMMENT 'LINE Pay Channel Secret',
+    line_pay_mode           ENUM ('SANDBOX', 'PRODUCTION') DEFAULT 'SANDBOX' COMMENT 'LINE Pay 環境（測試或正式）',
+    created_at              DATETIME                       DEFAULT CURRENT_TIMESTAMP COMMENT '建立時間',
+    updated_at              DATETIME                       DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最後更新時間',
+
+    FOREIGN KEY (user_id) REFERENCES users (id),
+
+    INDEX idx_user_id (user_id),
+    INDEX idx_name (name),
+    INDEX idx_is_active (is_active)
+) COMMENT ='贊助商（Sponsor）資訊表，包含 LINE Pay 設定與合作資訊';
 
 -- ─────────────────── activities ───────────────────
 CREATE TABLE IF NOT EXISTS activities

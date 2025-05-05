@@ -36,6 +36,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse res,
             @NonNull FilterChain chain) throws ServletException, IOException {
 
+        Cookie[] cookies = req.getCookies();
+        if (cookies != null) {
+            for (Cookie c : cookies) {
+                log.debug("Received cookie: {}={}", c.getName(), c.getValue());
+            }
+        } else {
+            log.debug("No cookies received in request.");
+        }
+
         // 若已經存在認證資訊，直接放行
         if (SecurityContextHolder.getContext().getAuthentication() != null) {
             chain.doFilter(req, res);

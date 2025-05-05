@@ -1,6 +1,7 @@
 package com.volleyball.finder.service.impl;
 
 import com.volleyball.finder.entity.User;
+import com.volleyball.finder.enums.Role;
 import com.volleyball.finder.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,6 +59,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         // 3. 把 User 放進 attributes 回傳
         Map<String, Object> merged = new HashMap<>(raw);
         merged.put("user", user);
+        merged.put("lineId", lineId);
 
         return new DefaultOAuth2User(
                 List.of(new SimpleGrantedAuthority("ROLE_USER")),
@@ -78,6 +80,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         User user = new User();
         user.setLineId((String) attributes.get("userId"));
         user.setNickname((String) attributes.get("displayName"));
+        user.setRole(Role.USER);
         user.setAvatar(avatarUrl);
 
         return userService.createUser(user);

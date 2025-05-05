@@ -25,9 +25,16 @@ public enum ErrorCode {
     ACTIVITY_FEMALE_PRIORITY(HttpStatus.CONFLICT, "目前為女生優先，待女生名額額滿後才能報名"),
     ACTIVITY_MALE_FULL(HttpStatus.CONFLICT, "男生名額已滿，請等待候補或選擇其他場次"),
     ACTIVITY_FEMALE_FULL(HttpStatus.CONFLICT, "女生名額已滿，請等待候補或選擇其他場次"),
-    ACTIVITY_GENDER_QUOTA_FULL(HttpStatus.CONFLICT, "該性別名額已額滿，無法報名此活動");    // … 其它錯誤 …
-    ;
+    ACTIVITY_GENDER_QUOTA_FULL(HttpStatus.CONFLICT, "該性別名額已額滿，無法報名此活動"),    // … 其它錯誤 …
 
+
+    // 贊助商
+    SPONSOR_PROFILE_ALREADY_EXISTS(HttpStatus.CONFLICT, "此贊助商已存在"),
+    SPONSOR_CREATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "建立贊助商失敗"),
+    SPONSOR_NOT_FOUND(HttpStatus.NOT_FOUND, "此贊助商不存在"),
+    SPONSOR_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "更新贊助商失敗"),
+
+    ;
     private final HttpStatus status;
     private final String defaultMsg;
 

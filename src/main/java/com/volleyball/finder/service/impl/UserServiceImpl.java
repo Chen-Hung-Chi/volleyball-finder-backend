@@ -100,6 +100,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getCurrentUser() {
         String lineId = SecurityUtils.getCurrentLineId();
+        log.info("目前登入者的 lineId: {}", lineId);
+
+        Optional<User> user = findByLineId(lineId);
+        if (user.isEmpty() && !StringUtils.hasText(lineId)) {
+            log.warn("查不到使用者，lineId 可能加密不一致: {}", lineId);
+        }
         return Optional.ofNullable(lineId)
                 .flatMap(this::findByLineId)
                 .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND, "尚未登入或找不到用戶資料"));

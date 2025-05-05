@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.volleyball.finder.enums.Gender;
 import com.volleyball.finder.enums.Level;
 import com.volleyball.finder.enums.Position;
+import com.volleyball.finder.enums.Role;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
@@ -19,6 +20,7 @@ public class User {
     @NotBlank
     private String lineId;
     private String fcmToken;
+    private Role role;
     private String realName;
     private String nickname;
     private Gender gender;

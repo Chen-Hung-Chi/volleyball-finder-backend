@@ -70,5 +70,5 @@ Thumbs.db
 # Misc
 *.swp
 
-# Local application config
+
 application-local.yml

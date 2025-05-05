@@ -13,7 +13,6 @@ import com.volleyball.finder.service.UserService;
 import com.volleyball.finder.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,21 +29,12 @@ import java.util.concurrent.Executors;
 public class NotificationServiceImpl implements NotificationService {
     private final NotificationMapper notificationMapper;
     private final ActivityService activityService;
-    private final SimpMessagingTemplate messagingTemplate;
     private final UserService userService;
 
     @Override
     @Transactional
     public void sendNotification(Notification notification) {
         notificationMapper.insert(notification);
-
-        // --- 發送 WebSocket 通知 ---
-        messagingTemplate.convertAndSendToUser(
-                notification.getUserId().toString(),
-                "/queue/notifications",
-                notification
-        );
-
         // --- 發送 FCM 通知 ---
         sendFcmNotification(notification);
     }
@@ -68,16 +58,6 @@ public class NotificationServiceImpl implements NotificationService {
             log.info("Successfully sent FCM push: {}", response);
         } catch (Exception e) {
             log.error("Failed to send FCM push notification: {}", e.getMessage(), e);
-        }
-    }
-
-    @Override
-    @Transactional
-    public void markAsRead(Long notificationId) {
-        Notification notification = notificationMapper.selectById(notificationId);
-        if (notification != null) {
-            notification.setRead(true);
-            notificationMapper.updateById(notification);
         }
     }
 

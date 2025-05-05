@@ -122,8 +122,8 @@ public class ActivityServiceImpl implements ActivityService {
         boolean femalePriority = Boolean.TRUE.equals(activity.getFemalePriority());
         boolean isMale = user.getGender() == Gender.MALE;
         boolean femaleQuotaExistsAndNotFull = activity.getFemaleQuota() != null && activity.getFemaleQuota() > 0 &&
-                                           activity.getFemaleCount() != null && activity.getFemaleCount() < activity.getFemaleQuota();
-        
+                activity.getFemaleCount() != null && activity.getFemaleCount() < activity.getFemaleQuota();
+
         // Force male to waiting list if female priority is active and female quota isn't full
         if (!isWaiting && femalePriority && isMale && femaleQuotaExistsAndNotFull) {
             log.info("Female priority active and female quota not full. Forcing male user {} to waiting list for activity {}.", userId, activityId);
@@ -157,17 +157,17 @@ public class ActivityServiceImpl implements ActivityService {
         boolean isMale = user.getGender() == Gender.MALE;
         if ((isMale && activity.getMaleQuota() != null && activity.getMaleQuota() == -1) ||
                 (!isMale && activity.getFemaleQuota() != null && activity.getFemaleQuota() == -1)) {
-            throw new ApiException(ErrorCode.ACTIVITY_GENDER_QUOTA_FULL, "該性別禁止報名此活動"); 
+            throw new ApiException(ErrorCode.ACTIVITY_GENDER_QUOTA_FULL, "該性別禁止報名此活動");
         }
 
         // 3. Check if specific gender quota is full (Only applies if joining main list, not waiting)
         if (!isWaiting) {
-             if (isGenderQuotaFull(activity, user)) {
-                 // Throw specific error based on gender
-                 throw new ApiException(isMale ? ErrorCode.ACTIVITY_MALE_FULL : ErrorCode.ACTIVITY_FEMALE_FULL);
-             }
+            if (isGenderQuotaFull(activity, user)) {
+                // Throw specific error based on gender
+                throw new ApiException(isMale ? ErrorCode.ACTIVITY_MALE_FULL : ErrorCode.ACTIVITY_FEMALE_FULL);
+            }
         }
-        
+
         // Note: Female priority check is now handled in joinActivity before this method
     }
 
@@ -177,11 +177,11 @@ public class ActivityServiceImpl implements ActivityService {
     private boolean isGenderQuotaFull(Activity activity, User user) {
         boolean isMale = user.getGender() == Gender.MALE;
         if (isMale) {
-            return activity.getMaleQuota() != null && activity.getMaleQuota() > 0 && 
-                   activity.getMaleCount() != null && activity.getMaleCount() >= activity.getMaleQuota();
+            return activity.getMaleQuota() != null && activity.getMaleQuota() > 0 &&
+                    activity.getMaleCount() != null && activity.getMaleCount() >= activity.getMaleQuota();
         } else {
-            return activity.getFemaleQuota() != null && activity.getFemaleQuota() > 0 && 
-                   activity.getFemaleCount() != null && activity.getFemaleCount() >= activity.getFemaleQuota();
+            return activity.getFemaleQuota() != null && activity.getFemaleQuota() > 0 &&
+                    activity.getFemaleCount() != null && activity.getFemaleCount() >= activity.getFemaleQuota();
         }
     }
 
@@ -326,37 +326,29 @@ public class ActivityServiceImpl implements ActivityService {
 
         LambdaQueryWrapper<Activity> wrapper = new LambdaQueryWrapper<>();
 
-        // 地點模糊搜尋
         Optional.ofNullable(request.getLocation())
                 .filter(StringUtils::hasText)
                 .ifPresent(location -> wrapper.like(Activity::getLocation, location));
 
-        // 城市精確查詢
         Optional.ofNullable(request.getCity())
                 .filter(StringUtils::hasText)
                 .ifPresent(city -> wrapper.eq(Activity::getCity, city));
 
-        // 行政區精確查詢
         Optional.ofNullable(request.getDistrict())
                 .filter(StringUtils::hasText)
                 .ifPresent(district -> wrapper.eq(Activity::getDistrict, district));
 
-        // 起始日期（含）
-        Optional.ofNullable(request.getStartDate())
-                .ifPresent(startDate ->
-                        wrapper.ge(Activity::getDateTime, startDate.atStartOfDay()));
-
-        // 結束日期（含）
-        Optional.ofNullable(request.getEndDate())
-                .ifPresent(endDate ->
-                        wrapper.le(Activity::getDateTime, endDate.atTime(LocalTime.MAX)));
-
-        // 網高類型（enum）
         Optional.ofNullable(request.getNetType())
                 .ifPresent(netType -> wrapper.eq(Activity::getNetType, netType));
 
-        // 僅查詢未來活動
-        wrapper.ge(Activity::getDateTime, LocalDateTime.now());
+        // === 時間條件處理 ===
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startDateTime = Optional.ofNullable(request.getStartDate())
+                .map(LocalDate::atStartOfDay).filter(userStart -> userStart.isAfter(now)).orElse(now);
+        wrapper.ge(Activity::getDateTime, startDateTime);
+
+        Optional.ofNullable(request.getEndDate())
+                .ifPresent(endDate -> wrapper.le(Activity::getDateTime, endDate.atTime(LocalTime.MAX)));
 
         // 時間排序（由近到遠）
         wrapper.orderByAsc(Activity::getDateTime);
@@ -365,16 +357,10 @@ public class ActivityServiceImpl implements ActivityService {
         Page<Activity> page = new Page<>(request.getPage(), request.getLimit());
         Page<Activity> result = activityMapper.selectPage(page, wrapper);
 
-        // 封裝回傳
-        PageResponse<Activity> response = new PageResponse<>();
-        response.setItems(result.getRecords());
-        response.setTotal(result.getTotal());
-        response.setPage(result.getCurrent());
-        response.setLimit(result.getSize());
-        response.setTotalPages(result.getPages());
+        log.info("Found {} activities in total, returning page {} with {} items.",
+                result.getTotal(), result.getCurrent(), result.getRecords().size());
 
-        log.info("Found {} activities", result.getTotal());
-        return response;
+        return PageResponse.of(result);
     }
 
     @Override

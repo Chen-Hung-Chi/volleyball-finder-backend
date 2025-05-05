@@ -12,11 +12,11 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Taipei
-  sql:
-    init:
-      mode: always
-      schema-locations: classpath:schema.sql
-      encoding: UTF-8
+#  sql:
+#    init:
+#      mode: always
+#      schema-locations: classpath:schema.sql
+#      encoding: UTF-8
 
 app:
   frontend:
@@ -30,6 +30,9 @@ app:
 line:
   client-id: ${LINE_CLIENT_ID}
   client-secret: ${LINE_CLIENT_SECRET}
+
+aes:
+  key: ${AES_KEY:d92oUh3gPZvVXIZfEgOVIskZp5Qer9hUHw+JBmCUZM8=}
 
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml

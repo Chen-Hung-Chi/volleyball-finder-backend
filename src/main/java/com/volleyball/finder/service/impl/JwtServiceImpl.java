@@ -30,6 +30,7 @@ public class JwtServiceImpl implements JwtService {
                 .claim("id", user.getId())
                 .claim("nickname", user.getNickname())
                 .claim("lineId", user.getLineId())
+                .claim("role", user.getRole().name())
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(jwtConfig.secretKey(), SignatureAlgorithm.HS256)
