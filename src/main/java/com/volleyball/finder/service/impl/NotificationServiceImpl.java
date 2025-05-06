@@ -30,6 +30,8 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationMapper notificationMapper;
     private final ActivityService activityService;
     private final UserService userService;
+    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+
 
     @Override
     @Transactional
@@ -77,49 +79,43 @@ public class NotificationServiceImpl implements NotificationService {
         log.info("Starting to send activity reminders...");
         LocalDate tomorrow = LocalDate.now().plusDays(1);
         List<Activity> tomorrowActivities = activityService.findByDate(tomorrow);
-        log.info("Found {} activities scheduled for tomorrow {}", tomorrowActivities.size(), tomorrow);
+        log.info("Found {} activities scheduled for {}", tomorrowActivities.size(), tomorrow);
 
-        if (tomorrowActivities.isEmpty()) {
-            log.info("No activities found for tomorrow, skipping reminders");
-            return;
-        }
+        if (tomorrowActivities.isEmpty()) return;
 
-        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            for (Activity activity : tomorrowActivities) {
-                List<ActivityParticipantDto> participants = activityService.getActivityParticipants(activity.getId());
-                log.info("Sending reminders for activity: {} to {} participants",
-                        activity.getTitle(), participants.size());
+        for (Activity activity : tomorrowActivities) {
+            List<ActivityParticipantDto> participants = activityService.getActivityParticipants(activity.getId());
+            if (participants.isEmpty()) continue;
 
-                for (ActivityParticipantDto participant : participants) {
-                    executor.submit(() -> {
-                        try {
-                            Notification notification = new Notification();
-                            notification.setUserId(participant.getUserId());
-                            notification.setTitle("【活動提醒】");
-                            notification.setContent("""
-                                    【%s】
-                                     時間：【%s】
-                                     地點：【%s】
-                                    """.formatted(
-                                    activity.getTitle(),
-                                    activity.getDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
-                                    activity.getLocation()
-                            ));
-                            notification.setRead(false);
+            String messageTitle = "【活動提醒】";
+            String messageContent = """
+                    【%s】
+                    時間：【%s】
+                    地點：【%s】
+                    """.formatted(
+                    activity.getTitle(),
+                    activity.getDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                    activity.getLocation()
+            );
 
-                            sendNotification(notification);
-                            log.debug("Sent reminder to user {} for activity {}",
-                                    participant.getUserId(), activity.getId());
-                        } catch (Exception e) {
-                            log.error("Failed to send reminder to user {} for activity {}: {}",
-                                    participant.getUserId(), activity.getId(), e.getMessage(), e);
-                        }
-                    });
-                }
+            for (ActivityParticipantDto participant : participants) {
+                executor.submit(() -> {
+                    try {
+                        Notification notification = new Notification();
+                        notification.setUserId(participant.getUserId());
+                        notification.setTitle(messageTitle);
+                        notification.setContent(messageContent);
+                        notification.setRead(false);
+                        sendNotification(notification);
+                        log.debug("Sent reminder to user {} for activity {}",
+                                participant.getUserId(), activity.getId());
+                    } catch (Exception e) {
+                        log.error("Failed to send reminder to user {}: {}", participant.getUserId(), e.getMessage(), e);
+                    }
+                });
             }
-        } catch (Exception e) {
-            log.error("Error while sending activity reminders: {}", e.getMessage(), e);
         }
-        log.info("Finished sending activity reminders");
+
+        log.info("Finished sending activity reminders.");
     }
 }

@@ -7,7 +7,6 @@ COPY pom.xml .
 RUN mvn dependency:go-offline -B
 
 COPY src ./src
-
 RUN mvn package -DskipTests -B
 
 # --- Stage 2: Run ---
@@ -19,4 +18,4 @@ COPY --from=builder /app/target/volleyball-finder-*.jar app.jar
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=90.0", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Xmx2g", "-Xms512m", "-XX:+UseContainerSupport", "-jar", "app.jar"]
