@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS activity_participants
 
     FOREIGN KEY (activity_id) REFERENCES activities (id),
     FOREIGN KEY (user_id) REFERENCES users (id),
-    UNIQUE KEY unique_participant (activity_id, user_id)
+    UNIQUE KEY uq_activity_user_active (activity_id, user_id, is_deleted)
 );
 
 -- Index for quickly finding if a user is the captain for an activity

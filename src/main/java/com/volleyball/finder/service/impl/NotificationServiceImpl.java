@@ -15,107 +15,120 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class NotificationServiceImpl implements NotificationService {
+
     private final NotificationMapper notificationMapper;
     private final ActivityService activityService;
     private final UserService userService;
-    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    private final ExecutorService notificationExecutor;   // 由 ThreadConfig 注入
 
+    /*──────────────────────────── 通知 CRUD ────────────────────────────*/
 
     @Override
-    @Transactional
     public void sendNotification(Notification notification) {
         notificationMapper.insert(notification);
-        // --- 發送 FCM 通知 ---
-        sendFcmNotification(notification);
-    }
-
-    private void sendFcmNotification(Notification notification) {
-        try {
-            String targetFcmToken = userService.getFcmToken(notification.getUserId());
-
-            if (targetFcmToken == null || targetFcmToken.isEmpty()) {
-                log.warn("User {} has no FCM token, skipping FCM push", notification.getUserId());
-                return;
-            }
-
-            Message message = Message.builder()
-                    .putData("title", notification.getTitle())
-                    .putData("body", notification.getContent())
-                    .setToken(targetFcmToken)
-                    .build();
-
-            String response = FirebaseMessaging.getInstance().send(message);
-            log.info("Successfully sent FCM push: {}", response);
-        } catch (Exception e) {
-            log.error("Failed to send FCM push notification: {}", e.getMessage(), e);
-        }
+        pushFcm(notification);
     }
 
     @Override
     public List<Notification> getNotification() {
         Long userId = SecurityUtils.getCurrentUserId(userService);
-
         return notificationMapper.selectList(
                 new QueryWrapper<Notification>()
                         .eq("user_id", userId)
-        );
+                        .orderByDesc("created_at"));
     }
 
+    /*──────────────────────────── 每日活動提醒 ────────────────────────────*/
+
+    /**
+     * 每日 00:00 觸發，Asia/Taipei
+     */
     @Scheduled(cron = "0 0 0 * * *")
-    @Transactional
     public void sendActivityReminders() {
-        log.info("Starting to send activity reminders...");
+
         LocalDate tomorrow = LocalDate.now().plusDays(1);
-        List<Activity> tomorrowActivities = activityService.findByDate(tomorrow);
-        log.info("Found {} activities scheduled for {}", tomorrowActivities.size(), tomorrow);
+        List<Activity> activities = activityService.findByDate(tomorrow);
+        log.info("Found {} activities scheduled for {}", activities.size(), tomorrow);
 
-        if (tomorrowActivities.isEmpty()) return;
+        if (activities.isEmpty()) return;
 
-        for (Activity activity : tomorrowActivities) {
-            List<ActivityParticipantDto> participants = activityService.getActivityParticipants(activity.getId());
+        // 一次查出所有參與者，避免 N+1
+        Map<Long, List<ActivityParticipantDto>> participantMap =
+                activityService.getParticipantsByActivityIds(
+                                activities.stream().map(Activity::getId).toList())
+                        .stream()
+                        .collect(Collectors.groupingBy(ActivityParticipantDto::getActivityId));
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+        for (Activity act : activities) {
+            List<ActivityParticipantDto> participants =
+                    participantMap.getOrDefault(act.getId(), List.of());
             if (participants.isEmpty()) continue;
 
-            String messageTitle = "【活動提醒】";
-            String messageContent = """
+            String title = "【活動提醒】";
+            String body = """
                     【%s】
                     時間：【%s】
                     地點：【%s】
                     """.formatted(
-                    activity.getTitle(),
-                    activity.getDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
-                    activity.getLocation()
-            );
+                    act.getTitle(),
+                    act.getDateTime().format(fmt),
+                    act.getLocation());
 
-            for (ActivityParticipantDto participant : participants) {
-                executor.submit(() -> {
-                    try {
-                        Notification notification = new Notification();
-                        notification.setUserId(participant.getUserId());
-                        notification.setTitle(messageTitle);
-                        notification.setContent(messageContent);
-                        notification.setRead(false);
-                        sendNotification(notification);
-                        log.debug("Sent reminder to user {} for activity {}",
-                                participant.getUserId(), activity.getId());
-                    } catch (Exception e) {
-                        log.error("Failed to send reminder to user {}: {}", participant.getUserId(), e.getMessage(), e);
-                    }
-                });
-            }
+            // 交由虛擬執行緒批量送出
+            participants.forEach(p -> notificationExecutor.submit(() -> pushReminder(p, title, body, act.getId())));
         }
+        log.info("Finished scheduling activity reminders tasks.");
+    }
 
-        log.info("Finished sending activity reminders.");
+    private void pushReminder(ActivityParticipantDto p, String title, String body, Long activityId) {
+        try {
+            Notification n = Notification.builder()
+                    .userId(p.getUserId())
+                    .title(title)
+                    .content(body)
+                    .isRead(false)
+                    .build();
+            sendNotification(n);
+            log.debug("Reminder sent to user {} for activity {}", p.getUserId(), activityId);
+        } catch (Exception e) {
+            log.error("Failed reminder to user {} for activity {} : {}", p.getUserId(), activityId, e.getMessage(), e);
+        }
+    }
+
+    /*──────────────────────────── FCM PUSH ────────────────────────────*/
+
+    private void pushFcm(Notification n) {
+        try {
+            String token = userService.getFcmToken(n.getUserId());
+            if (token == null || token.isEmpty()) {
+                log.warn("User {} has no FCM token, skipping push", n.getUserId());
+                return;
+            }
+
+            Message msg = Message.builder()
+                    .putData("title", n.getTitle())
+                    .putData("body", n.getContent())
+                    .setToken(token)
+                    .build();
+
+            String resp = FirebaseMessaging.getInstance().send(msg);
+            log.info("FCM push OK id={}", resp);
+        } catch (Exception e) {
+            log.error("FCM push FAIL user {} : {}", n.getUserId(), e.getMessage(), e);
+        }
     }
 }

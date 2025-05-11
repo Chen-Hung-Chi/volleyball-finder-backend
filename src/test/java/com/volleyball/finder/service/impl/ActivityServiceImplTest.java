@@ -102,7 +102,7 @@ class ActivityServiceImplTest {
         assertDoesNotThrow(() -> service.joinActivity(activity.getId(), user.getId()));
 
         // Assert
-        verify(activityMapper).addOrUpdateParticipant(activity.getId(), user.getId(), false);
+        verify(activityMapper).joinParticipant(activity.getId(), user.getId(), false);
         verify(activityMapper).syncCurrentParticipants(activity.getId());
 
         ArgumentCaptor<ActivityEvent> captor = ArgumentCaptor.forClass(ActivityEvent.class);
@@ -126,7 +126,7 @@ class ActivityServiceImplTest {
                 () -> service.joinActivity(123L, user.getId()));
 
         assertEquals(ErrorCode.ACTIVITY_NOT_FOUND, ex.code());
-        verify(activityMapper, never()).addOrUpdateParticipant(anyLong(), anyLong(), anyBoolean());
+        verify(activityMapper, never()).joinParticipant(anyLong(), anyLong(), anyBoolean());
         verify(eventPublisher, never()).publishEvent(any());
     }
 
@@ -142,7 +142,7 @@ class ActivityServiceImplTest {
                 () -> service.joinActivity(activity.getId(), 111L));
 
         assertEquals(ErrorCode.USER_NOT_FOUND, ex.code());
-        verify(activityMapper, never()).addOrUpdateParticipant(anyLong(), anyLong(), anyBoolean());
+        verify(activityMapper, never()).joinParticipant(anyLong(), anyLong(), anyBoolean());
         verify(eventPublisher, never()).publishEvent(any());
     }
 
@@ -158,7 +158,7 @@ class ActivityServiceImplTest {
                 () -> service.joinActivity(activity.getId(), user.getId()));
 
         assertEquals(ErrorCode.ACTIVITY_JOINED, ex.code());
-        verify(activityMapper, never()).addOrUpdateParticipant(anyLong(), anyLong(), anyBoolean());
+        verify(activityMapper, never()).joinParticipant(anyLong(), anyLong(), anyBoolean());
         verify(eventPublisher, never()).publishEvent(any());
     }
 
@@ -173,7 +173,7 @@ class ActivityServiceImplTest {
         assertDoesNotThrow(() -> service.joinActivity(activity.getId(), user.getId()));
         
         // Should add to waiting list
-        verify(activityMapper).addOrUpdateParticipant(activity.getId(), user.getId(), true);
+        verify(activityMapper).joinParticipant(activity.getId(), user.getId(), true);
         verify(activityMapper).syncCurrentParticipants(activity.getId()); // Should still sync
         verify(eventPublisher, never()).publishEvent(any(ActivityEvent.class)); // No event for waiting
     }
@@ -201,7 +201,7 @@ class ActivityServiceImplTest {
                 () -> service.joinActivity(activity.getId(), user.getId()));
 
         assertEquals(ErrorCode.ACTIVITY_WAIT_30M, ex.code());
-        verify(activityMapper, never()).addOrUpdateParticipant(anyLong(), anyLong(), anyBoolean());
+        verify(activityMapper, never()).joinParticipant(anyLong(), anyLong(), anyBoolean());
         verify(eventPublisher, never()).publishEvent(any());
     }
 
@@ -217,7 +217,7 @@ class ActivityServiceImplTest {
         assertDoesNotThrow(() -> service.joinActivity(activity.getId(), user.getId()));
 
         // Assert
-        verify(activityMapper).addOrUpdateParticipant(activity.getId(), user.getId(), false);
+        verify(activityMapper).joinParticipant(activity.getId(), user.getId(), false);
         verify(eventPublisher).publishEvent(any(ActivityEvent.class));
     }
 
@@ -233,7 +233,7 @@ class ActivityServiceImplTest {
         assertDoesNotThrow(() -> service.joinActivity(activity.getId(), user.getId()));
 
         // Assert
-        verify(activityMapper).addOrUpdateParticipant(activity.getId(), user.getId(), false);
+        verify(activityMapper).joinParticipant(activity.getId(), user.getId(), false);
         verify(eventPublisher).publishEvent(any(ActivityEvent.class));
     }
 
@@ -256,7 +256,7 @@ class ActivityServiceImplTest {
                 () -> service.joinActivity(activity.getId(), user.getId())); // Male user tries to join
 
         assertEquals(ErrorCode.ACTIVITY_MALE_FULL, ex.code());
-        verify(activityMapper, never()).addOrUpdateParticipant(anyLong(), anyLong(), anyBoolean());
+        verify(activityMapper, never()).joinParticipant(anyLong(), anyLong(), anyBoolean());
         verify(eventPublisher, never()).publishEvent(any());
     }
 
@@ -277,7 +277,7 @@ class ActivityServiceImplTest {
                 () -> service.joinActivity(activity.getId(), femaleUser.getId())); // Female user tries to join
 
         assertEquals(ErrorCode.ACTIVITY_FEMALE_FULL, ex.code());
-        verify(activityMapper, never()).addOrUpdateParticipant(anyLong(), anyLong(), anyBoolean());
+        verify(activityMapper, never()).joinParticipant(anyLong(), anyLong(), anyBoolean());
         verify(eventPublisher, never()).publishEvent(any());
     }
 
@@ -296,7 +296,7 @@ class ActivityServiceImplTest {
                 () -> service.joinActivity(activity.getId(), user.getId())); // Male user tries to join
 
         assertEquals(ErrorCode.ACTIVITY_GENDER_QUOTA_FULL, ex.code());
-        verify(activityMapper, never()).addOrUpdateParticipant(anyLong(), anyLong(), anyBoolean());
+        verify(activityMapper, never()).joinParticipant(anyLong(), anyLong(), anyBoolean());
         verify(eventPublisher, never()).publishEvent(any());
     }
 
@@ -315,7 +315,7 @@ class ActivityServiceImplTest {
                 () -> service.joinActivity(activity.getId(), femaleUser.getId())); // Female user tries to join
 
         assertEquals(ErrorCode.ACTIVITY_GENDER_QUOTA_FULL, ex.code());
-        verify(activityMapper, never()).addOrUpdateParticipant(anyLong(), anyLong(), anyBoolean());
+        verify(activityMapper, never()).joinParticipant(anyLong(), anyLong(), anyBoolean());
         verify(eventPublisher, never()).publishEvent(any());
     }
 
@@ -335,7 +335,7 @@ class ActivityServiceImplTest {
         assertDoesNotThrow(() -> service.joinActivity(activity.getId(), femaleUser.getId())); // Female joins
 
         // Assert
-        verify(activityMapper).addOrUpdateParticipant(activity.getId(), femaleUser.getId(), false);
+        verify(activityMapper).joinParticipant(activity.getId(), femaleUser.getId(), false);
         verify(eventPublisher).publishEvent(any(ActivityEvent.class));
     }
 
@@ -355,7 +355,7 @@ class ActivityServiceImplTest {
         assertDoesNotThrow(() -> service.joinActivity(activity.getId(), user.getId())); // Male joins
 
         // Assert: Male should be added to waiting list because female quota isn't full
-        verify(activityMapper).addOrUpdateParticipant(activity.getId(), user.getId(), true); // isWaiting = true
+        verify(activityMapper).joinParticipant(activity.getId(), user.getId(), true); // isWaiting = true
         // <<< Event should NOT be published for waiting list users >>>
         verify(eventPublisher, never()).publishEvent(any(ActivityEvent.class));
     }
@@ -376,7 +376,7 @@ class ActivityServiceImplTest {
         assertDoesNotThrow(() -> service.joinActivity(activity.getId(), user.getId())); // Male joins
 
         // Assert: Male should join normally as female quota is full
-        verify(activityMapper).addOrUpdateParticipant(activity.getId(), user.getId(), false); // isWaiting = false
+        verify(activityMapper).joinParticipant(activity.getId(), user.getId(), false); // isWaiting = false
         verify(eventPublisher).publishEvent(any(ActivityEvent.class));
     }
 
@@ -395,7 +395,7 @@ class ActivityServiceImplTest {
         assertDoesNotThrow(() -> service.joinActivity(activity.getId(), user.getId())); // Male joins
 
         // Assert: Male should be added to waiting list
-        verify(activityMapper).addOrUpdateParticipant(activity.getId(), user.getId(), true); // isWaiting = true
+        verify(activityMapper).joinParticipant(activity.getId(), user.getId(), true); // isWaiting = true
         verify(activityMapper).syncCurrentParticipants(activity.getId());
         verify(eventPublisher, never()).publishEvent(any(ActivityEvent.class)); // No event for waiting
     }
@@ -414,7 +414,7 @@ class ActivityServiceImplTest {
                 () -> service.joinActivity(activity.getId(), user.getId()));
 
         assertEquals(ErrorCode.ACTIVITY_FULL, ex.code());
-        verify(activityMapper, never()).addOrUpdateParticipant(anyLong(), anyLong(), anyBoolean());
+        verify(activityMapper, never()).joinParticipant(anyLong(), anyLong(), anyBoolean());
         verify(eventPublisher, never()).publishEvent(any());
     }
 }

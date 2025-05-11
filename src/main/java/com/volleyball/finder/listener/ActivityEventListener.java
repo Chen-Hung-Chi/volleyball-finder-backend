@@ -14,11 +14,13 @@ public class ActivityEventListener {
 
     @EventListener
     public void handleActivityEvent(ActivityEvent event) {
-        Notification notification = new Notification();
-        notification.setUserId(event.getUserId());
-        notification.setTitle(event.getTitle());
-        notification.setContent(event.getContent());
-        notification.setRead(false);
+        Notification notification = Notification.builder()
+                .userId(event.getUserId())
+                .title(event.getTitle())
+                .content(event.getContent())
+                .isRead(false)
+                .build();
+
         notificationService.sendNotification(notification);
     }
 } 

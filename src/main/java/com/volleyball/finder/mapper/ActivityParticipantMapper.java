@@ -24,4 +24,24 @@ public interface ActivityParticipantMapper extends BaseMapper<ActivityParticipan
                 ORDER BY ap.is_captain DESC, ap.id
             """)
     List<ActivityParticipantDto> findByActivityId(@Param("activityId") Long activityId);
+
+    @Select({
+            "<script>",
+            "SELECT ap.id, ap.activity_id, ap.user_id, ap.is_captain, ap.created_at,",
+            "       u.line_id, u.real_name, u.nickname, u.gender, u.position, u.level,",
+            "       u.volleyball_age, u.avatar, u.city, u.district, u.introduction,",
+            "       u.created_at AS user_created_at, u.updated_at AS user_updated_at",
+            "FROM activity_participants ap",
+            "LEFT JOIN users u ON ap.user_id = u.id",
+            "WHERE ap.is_deleted = FALSE",
+            "  <if test='activityIds != null and activityIds.size() > 0'>",
+            "    AND ap.activity_id IN",
+            "    <foreach collection='activityIds' item='id' open='(' separator=',' close=')'>",
+            "        #{id}",
+            "    </foreach>",
+            "  </if>",
+            "ORDER BY ap.activity_id, ap.is_captain DESC, ap.id",
+            "</script>"
+    })
+    List<ActivityParticipantDto> findByActivityIds(@Param("activityIds") List<Long> activityIds);
 }

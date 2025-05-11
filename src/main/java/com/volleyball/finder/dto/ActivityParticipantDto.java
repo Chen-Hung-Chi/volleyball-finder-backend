@@ -1,13 +1,11 @@
 package com.volleyball.finder.dto;
 
-import com.volleyball.finder.entity.Activity;
 import com.volleyball.finder.enums.Gender;
 import com.volleyball.finder.enums.Level;
 import com.volleyball.finder.enums.Position;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 public class ActivityParticipantDto {

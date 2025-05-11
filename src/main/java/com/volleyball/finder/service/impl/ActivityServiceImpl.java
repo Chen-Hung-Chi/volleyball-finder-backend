@@ -30,6 +30,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -135,7 +136,7 @@ public class ActivityServiceImpl implements ActivityService {
         rejectIfLimitsReached(activity, user, isWaiting);
 
         // 寫入參與者資料，並更新人數統計
-        addParticipant(activityId, userId, isWaiting);
+        activityMapper.joinParticipant(activityId, userId, isWaiting);
         activityMapper.syncCurrentParticipants(activityId);
 
         // 僅正取發送通知
@@ -183,13 +184,6 @@ public class ActivityServiceImpl implements ActivityService {
             return activity.getFemaleQuota() != null && activity.getFemaleQuota() > 0 &&
                     activity.getFemaleCount() != null && activity.getFemaleCount() >= activity.getFemaleQuota();
         }
-    }
-
-    /**
-     * 新增或更新參與者（包含是否為候補）
-     */
-    private void addParticipant(Long activityId, Long userId, boolean isWaiting) {
-        activityMapper.addOrUpdateParticipant(activityId, userId, isWaiting);
     }
 
     /**
@@ -367,6 +361,13 @@ public class ActivityServiceImpl implements ActivityService {
     public List<Activity> findByDate(LocalDate date) {
         log.info("Finding activities for date: {}", date);
         return activityMapper.findByDate(date);
+    }
+
+    @Override
+    public List<ActivityParticipantDto> getParticipantsByActivityIds(List<Long> activityIds) {
+        return (activityIds == null || activityIds.isEmpty())
+                ? Collections.emptyList()
+                : activityParticipantMapper.findByActivityIds(activityIds);
     }
 
 }

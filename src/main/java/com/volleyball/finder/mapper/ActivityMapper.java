@@ -3,7 +3,6 @@ package com.volleyball.finder.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.volleyball.finder.entity.Activity;
 import com.volleyball.finder.entity.ActivityParticipants;
-import com.volleyball.finder.enums.Gender;
 import org.apache.ibatis.annotations.*;
 
 import java.time.LocalDate;
@@ -30,7 +29,9 @@ public interface ActivityMapper extends BaseMapper<Activity> {
 
     @Select("SELECT a.*, IF(ap.user_id = #{userId} AND ap.is_captain = true, true, false) as is_captain " +
             "FROM activities a " +
-            "LEFT JOIN activity_participants ap ON a.id = ap.activity_id AND ap.user_id = #{userId} " +
+            "LEFT JOIN activity_participants ap ON a.id = ap.activity_id " +
+            "AND ap.user_id = #{userId} " +
+            "AND ap.is_deleted = FALSE " +
             "WHERE a.created_by = #{userId} OR ap.user_id = #{userId} " +
             "ORDER BY a.date_time DESC")
     List<Activity> findByUserId(@Param("userId") Long userId);
@@ -52,13 +53,13 @@ public interface ActivityMapper extends BaseMapper<Activity> {
     ActivityParticipants findParticipant(@Param("activityId") Long activityId, @Param("userId") Long userId);
 
     @Insert("""
-                INSERT INTO activity_participants (activity_id, user_id, is_waiting)
-                VALUES (#{activityId}, #{userId}, #{isWaiting})
-                ON DUPLICATE KEY UPDATE is_deleted = FALSE, is_waiting = #{isWaiting}
+              INSERT INTO activity_participants
+                (activity_id, user_id, is_waiting)
+              VALUES (#{activityId}, #{userId}, #{isWaiting})
             """)
-    void addOrUpdateParticipant(@Param("activityId") Long activityId,
-                                @Param("userId") Long userId,
-                                @Param("isWaiting") boolean isWaiting);
+    void joinParticipant(@Param("activityId") Long activityId,
+                         @Param("userId") Long userId,
+                         @Param("isWaiting") boolean isWaiting);
 
     @Update("UPDATE activity_participants SET is_deleted = TRUE, updated_at = NOW() WHERE activity_id = #{activityId} AND user_id = #{userId} AND is_deleted = FALSE")
     void removeParticipant(@Param("activityId") Long activityId, @Param("userId") Long userId);
@@ -109,15 +110,4 @@ public interface ActivityMapper extends BaseMapper<Activity> {
                 WHERE id = #{id}
             """)
     void updateIsWaiting(@Param("id") Long id, @Param("isWaiting") boolean isWaiting);
-
-    @Select("""
-            SELECT COUNT(*)
-            FROM activity_participants ap
-            JOIN users u ON ap.user_id = u.id
-            WHERE ap.activity_id = #{activityId}
-              AND ap.is_deleted = FALSE
-              AND u.gender = #{gender}
-            """)
-    int countParticipantsByGender(@Param("activityId") Long activityId,
-                                  @Param("gender") Gender gender);
 }

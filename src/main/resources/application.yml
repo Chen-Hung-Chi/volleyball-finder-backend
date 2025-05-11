@@ -12,12 +12,9 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Taipei
-#  sql:
-#    init:
-#      mode: always
-#      schema-locations: classpath:schema.sql
-#      encoding: UTF-8
-
+  threads:
+    virtual:
+      enabled: true
 app:
   frontend:
     url: ${FRONTEND_URL:http://localhost:3000}
