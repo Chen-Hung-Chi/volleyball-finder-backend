@@ -1,6 +1,7 @@
 package com.volleyball.finder.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.volleyball.finder.dto.ActivityParticipantDto;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -48,6 +50,34 @@ public class NotificationServiceImpl implements NotificationService {
                 new QueryWrapper<Notification>()
                         .eq("user_id", userId)
                         .orderByDesc("created_at"));
+    }
+
+
+    @Override
+    @Transactional
+    public void markAsRead(Long notificationId, Long userId) {
+        int updated = notificationMapper.update(
+                null,
+                new LambdaUpdateWrapper<Notification>()
+                        .eq(Notification::getId, notificationId)
+                        .eq(Notification::getUserId, userId)
+                        .set(Notification::getIsRead, true)
+        );
+        if (updated == 0) {
+            log.warn("User {} tried to mark unknown / unauthorized notification {} as read", userId, notificationId);
+            throw new IllegalArgumentException("無此通知或無權限");
+        }
+    }
+
+    @Override
+    @Transactional
+    public void markAsReadBatch(Long userId) {
+        notificationMapper.update(
+                null,
+                new LambdaUpdateWrapper<Notification>()
+                        .eq(Notification::getUserId, userId)
+                        .set(Notification::getIsRead, true)
+        );
     }
 
     /*──────────────────────────── 每日活動提醒 ────────────────────────────*/

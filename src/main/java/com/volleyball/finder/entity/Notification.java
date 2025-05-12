@@ -18,7 +18,7 @@ public class Notification {
     private Long userId;
     private String title;
     private String content;
-    private boolean isRead;
+    private Boolean isRead;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-} 
+}
