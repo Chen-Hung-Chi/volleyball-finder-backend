@@ -1,9 +1,8 @@
 package com.volleyball.finder.controller;
 
-import com.volleyball.finder.dto.BooleanResponse;
-import com.volleyball.finder.dto.UpdateFcmTokenRequest;
-import com.volleyball.finder.dto.UserUpdateRequest;
+import com.volleyball.finder.dto.*;
 import com.volleyball.finder.entity.User;
+import com.volleyball.finder.security.CustomUserDetails;
 import com.volleyball.finder.service.UserService;
 import com.volleyball.finder.util.CookieUtils;
 import com.volleyball.finder.util.SecurityUtils;
@@ -16,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -35,10 +35,8 @@ public class UserController {
     /* 取得指定使用者 ---------------------------------------------------- */
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUser(@PathVariable Long id) {
-        return ResponseEntity.of(
-                java.util.Optional.ofNullable(userService.findById(id))
-        );
+    public ResponseEntity<UserResponse> getUser(@PathVariable Long id) {
+        return ResponseEntity.of(userService.getUserResponseById(id));
     }
 
     /* 取得當前登入使用者 ------------------------------------------------ */
@@ -52,19 +50,18 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
-    /* 新增使用者 -------------------------------------------------------- */
-
-    @PostMapping
-    public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
-        return ResponseEntity.ok(userService.createUser(user));
-    }
-
     /* 更新使用者 -------------------------------------------------------- */
 
     @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Long id,
-                                           @Valid @RequestBody UserUpdateRequest userUpdateRequest) {
-        return ResponseEntity.ok(userService.updateUser(id, userUpdateRequest));
+    public ResponseEntity<User> updateUser(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails user,
+            @Valid @RequestBody UserUpdateRequest userUpdateRequest) {
+        if (!user.getId().equals(id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        var updated = userService.updateUser(id, userUpdateRequest);
+        return ResponseEntity.ok(updated);
     }
 
     /* 刪除使用者 -------------------------------------------------------- */
@@ -78,7 +75,8 @@ public class UserController {
     /* 登出 ------------------------------------------------------------ */
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
+    public ResponseEntity<Void> logout(HttpServletRequest request,
+                                       HttpServletResponse response) {
         // 清掉 token cookie
         CookieUtils.clear("token", response);
 
@@ -110,4 +108,5 @@ public class UserController {
         userService.updateFcmToken(userId, request.getFcmToken());
         return "FCM Token updated successfully.";
     }
+
 }

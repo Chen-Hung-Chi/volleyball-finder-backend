@@ -1,7 +1,10 @@
 package com.volleyball.finder.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.volleyball.finder.dto.UserPrivateResponse;
+import com.volleyball.finder.dto.UserResponse;
 import com.volleyball.finder.dto.UserUpdateRequest;
 import com.volleyball.finder.entity.User;
 import com.volleyball.finder.error.ApiException;
@@ -16,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -63,19 +68,25 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User updateUser(Long id, UserUpdateRequest dto) {
-        if (dto == null || id == null) {
-            throw new ApiException(ErrorCode.INVALID_REQUEST, "用戶或用戶 ID 不可為空");
-        }
+        Objects.requireNonNull(id, "用戶 ID 不可為空");
+        Objects.requireNonNull(dto, "用戶資料不可為空");
 
         log.info("更新用戶: {}", dto);
 
-        User existingUser = userMapper.selectById(id);
+        var existingUser = userMapper.selectById(id);
         if (existingUser == null) {
             throw new ApiException(ErrorCode.USER_NOT_FOUND, "找不到用戶 ID: " + id);
         }
 
-        // 將 dto 資料複製到 existingUser（只會覆蓋非 null 欄位）
-        BeanUtils.copyProperties(dto, existingUser);
+        // 實名制驗證成功
+        if (StringUtils.hasText(dto.getRealName()) && StringUtils.hasText(dto.getPhone())) {
+            existingUser.setRealName(dto.getRealName());
+            existingUser.setPhone(dto.getPhone());
+            existingUser.setIsVerified(Boolean.TRUE);
+        }
+
+        // 只會覆蓋非 null 欄位，注意不能讓上面已特別處理的欄位被覆蓋
+        BeanUtils.copyProperties(dto, existingUser, "realName", "phone", "isVerified");
 
         int result = userMapper.updateById(existingUser);
         if (result == 0) {
@@ -132,5 +143,29 @@ public class UserServiceImpl implements UserService {
         userMapper.update(null, new UpdateWrapper<User>()
                 .eq("id", userId)
                 .set("fcm_token", fcmToken));
+    }
+
+    @Override
+    public Optional<UserResponse> getUserResponseById(Long id) {
+        User user = userMapper.selectById(id);
+        if (user == null) return Optional.empty();
+
+        UserResponse dto = new UserResponse();
+        BeanUtils.copyProperties(user, dto);
+        return Optional.of(dto);
+    }
+
+    @Override
+    public List<UserPrivateResponse> getUserPrivateResponseByIds(List<Long> ids) {
+        QueryWrapper<User> wrapper = new QueryWrapper<>();
+        wrapper.select("id", "real_name", "phone");  // 指定欄位
+        wrapper.in("id", ids);
+
+        // 查出 User，再轉成 UserPrivateResponse
+        List<User> users = userMapper.selectList(wrapper);
+
+        return users.stream()
+                .map(user -> new UserPrivateResponse(user.getId(), user.getRealName(), user.getPhone()))
+                .toList();
     }
 }

@@ -3,6 +3,7 @@ package com.volleyball.finder.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import com.volleyball.finder.enums.NetType;
 import com.volleyball.finder.validation.QuotaConstraint;
+import com.volleyball.finder.validation.QuotaValidatable;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
@@ -11,7 +12,7 @@ import java.time.LocalDateTime;
 @Data
 @TableName("activities")
 @QuotaConstraint(message = "請檢查男女人數名額設定")
-public class Activity {
+public class Activity implements QuotaValidatable {
 
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
@@ -50,8 +51,7 @@ public class Activity {
     @NotBlank(message = "行政區不能為空")
     private String district; // 行政區
 
-    @NotNull(message = "建立者不能為空")
-    private Long createdBy; // 建立者 User ID
+    private Long createdBy;
 
     @NotNull(message = "網別不能為空")
     private NetType netType; // 網別（男網、女網、混網）
@@ -69,6 +69,8 @@ public class Activity {
     private Integer femaleQuota; // 女生名額上限（-1: 不允許, 0: 不限制, >0: 限制人數）
 
     private Boolean femalePriority; // 女生優先報名
+
+    private Boolean requireVerification; // 是否需要實名制
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt; // 建立時間

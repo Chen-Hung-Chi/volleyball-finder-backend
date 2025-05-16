@@ -26,6 +26,7 @@ public enum ErrorCode {
     ACTIVITY_MALE_FULL(HttpStatus.CONFLICT, "男生名額已滿，請等待候補或選擇其他場次"),
     ACTIVITY_FEMALE_FULL(HttpStatus.CONFLICT, "女生名額已滿，請等待候補或選擇其他場次"),
     ACTIVITY_GENDER_QUOTA_FULL(HttpStatus.CONFLICT, "該性別名額已額滿，無法報名此活動"),    // … 其它錯誤 …
+    ACTIVITY_REQUIRE_VERIFICATION(HttpStatus.CONFLICT, "此活動須先完成實名制"),
 
 
     // 贊助商

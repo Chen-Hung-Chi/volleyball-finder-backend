@@ -1,6 +1,7 @@
 package com.volleyball.finder.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import lombok.Builder;
 import lombok.Data;
 import java.time.LocalDateTime;
 

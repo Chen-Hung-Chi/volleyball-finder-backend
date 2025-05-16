@@ -8,7 +8,7 @@ import java.util.Collection;
 
 @Getter
 public class CustomUserDetails implements UserDetails {
-    private final long id;
+    private final Long id;
     private final String nickname;
     private final String lineId;
 

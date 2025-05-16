@@ -18,7 +18,6 @@ import com.volleyball.finder.mapper.ActivityParticipantMapper;
 import com.volleyball.finder.service.ActivityService;
 import com.volleyball.finder.service.UserService;
 import com.volleyball.finder.util.DateTimeUtils;
-import com.volleyball.finder.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -32,6 +31,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
@@ -72,7 +72,7 @@ public class ActivityServiceImpl implements ActivityService {
         ActivityParticipants participant = new ActivityParticipants();
         participant.setActivityId(activity.getId());
         participant.setUserId(activity.getCreatedBy());
-        participant.setIsCaptain(true);  // 隊長
+        participant.setIsCaptain(true);
 
         activityParticipantMapper.insert(participant);
 
@@ -81,22 +81,20 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     @Transactional
-    public Activity update(Long id, ActivityUpdateRequest activityUpdateRequest) {
-        log.info("activityUpdateDto: {}", activityUpdateRequest);
-        Long userId = SecurityUtils.getCurrentUserId(userService);
+    public Activity update(Long id, ActivityUpdateRequest dto, Long userId) {
+        log.info("activityUpdateDto: {}", dto);
 
-        Activity existing = activityMapper.selectById(id);
-        if (existing == null) {
-            throw new ApiException(ErrorCode.ACTIVITY_NOT_FOUND);
-        }
+        Activity existing = Optional.ofNullable(activityMapper.selectById(id))
+                .orElseThrow(() -> new ApiException(ErrorCode.ACTIVITY_NOT_FOUND));
 
-        if (!existing.getCreatedBy().equals(userId)) {
+        if (!Objects.equals(existing.getCreatedBy(), userId)) {
             throw new ApiException(ErrorCode.FORBIDDEN, "你不是活動發起人");
         }
 
-        BeanUtils.copyProperties(activityUpdateRequest, existing, "id");
+        BeanUtils.copyProperties(dto, existing, "id");
         activityMapper.updateById(existing);
-        return existing;
+
+        return activityMapper.selectById(id);
     }
 
     @Override
@@ -110,39 +108,64 @@ public class ActivityServiceImpl implements ActivityService {
     @Override
     @Transactional
     public void joinActivity(Long activityId, Long userId) {
-        // 取出活動與使用者
-        Activity activity = getExistingActivity(activityId, userId);
-        User user = getExistingUser(userId);
 
-        // 檢查是否已加入或冷卻中
-        rejectIfAlreadyJoined(activityId, userId);
-        rejectIfInCooldown(activityId, userId);
+        // ── 1. 取資料並做前置驗證 ────────────────────────────────
+        var activity = getExistingActivity(activityId, userId);   // 404 handled inside
+        var user = getExistingUser(userId);                  // 404 handled inside
 
-        // --- Determine if user should be on waiting list --- 
-        boolean isWaiting = activity.getCurrentParticipants() >= activity.getMaxParticipants();
-        boolean femalePriority = Boolean.TRUE.equals(activity.getFemalePriority());
-        boolean isMale = user.getGender() == Gender.MALE;
-        boolean femaleQuotaExistsAndNotFull = activity.getFemaleQuota() != null && activity.getFemaleQuota() > 0 &&
-                activity.getFemaleCount() != null && activity.getFemaleCount() < activity.getFemaleQuota();
+        rejectIfAlreadyJoined(activityId, userId);                // 已加入
+        rejectIfInCooldown(activityId, userId);                   // 冷卻 30 min
+        rejectIfNeedRealName(activity, user);                     // 實名制
 
-        // Force male to waiting list if female priority is active and female quota isn't full
-        if (!isWaiting && femalePriority && isMale && femaleQuotaExistsAndNotFull) {
-            log.info("Female priority active and female quota not full. Forcing male user {} to waiting list for activity {}.", userId, activityId);
-            isWaiting = true;
-        }
-        // --- End waiting list determination ---
+        // ── 2. 判斷是否進候補 (含女生優先邏輯) ────────────────────
+        var isWaiting = shouldWait(activity, user);
 
-        // 檢查是否已滿額或違反性別限制 (考慮是否候補)
+        // ── 3. 檢查名額 / 性別限制 (考慮正取或候補) ────────────────
         rejectIfLimitsReached(activity, user, isWaiting);
 
-        // 寫入參與者資料，並更新人數統計
+        // ── 4. 寫入資料 & 更新人數 ────────────────────────────────
         activityMapper.joinParticipant(activityId, userId, isWaiting);
         activityMapper.syncCurrentParticipants(activityId);
 
-        // 僅正取發送通知
-        if (!isWaiting) {
+        if (!isWaiting) {   // 只有正取才推播
             publishJoinNotification(activity, user);
         }
+    }
+
+    /**
+     * 實名制檢查
+     */
+    private void rejectIfNeedRealName(Activity activity, User user) {
+        if (Boolean.TRUE.equals(activity.getRequireVerification()) &&
+                !Boolean.TRUE.equals(user.getIsVerified())) {
+            throw new ApiException(ErrorCode.ACTIVITY_REQUIRE_VERIFICATION);
+        }
+    }
+
+    /**
+     * 決定是否進候補名單
+     * 規則：
+     * 1. 正取已滿 ⇒ 候補
+     * 2. 若開啟 femalePriority，且女生 quota 尚未達標，
+     * 則男生一律候補
+     */
+    private boolean shouldWait(Activity activity, User user) {
+
+        var mainFull = activity.getCurrentParticipants() >= activity.getMaxParticipants();
+
+        // 女生 quota 是否「需要再補」
+        var femaleNeedsMore =
+                Optional.ofNullable(activity.getFemaleQuota())
+                        .filter(q -> q > 0)
+                        .map(q -> activity.getFemaleCount() < q)
+                        .orElse(false);
+
+        var femalePriority = Boolean.TRUE.equals(activity.getFemalePriority());
+        var isMale = user.getGender() == Gender.MALE;
+
+        if (mainFull) return true;                                       // ① 已滿
+        if (femalePriority && isMale && femaleNeedsMore) return true;    // ② 女生優先
+        return false;                                                    // 其餘進正取
     }
 
     /**
@@ -161,10 +184,10 @@ public class ActivityServiceImpl implements ActivityService {
             throw new ApiException(ErrorCode.ACTIVITY_GENDER_QUOTA_FULL, "該性別禁止報名此活動");
         }
 
-        // 3. Check if specific gender quota is full (Only applies if joining main list, not waiting)
+        // 3. Check if a specific gender quota is full (Only applies if joining the main list, not waiting)
         if (!isWaiting) {
             if (isGenderQuotaFull(activity, user)) {
-                // Throw specific error based on gender
+                // Throw a specific error based on gender
                 throw new ApiException(isMale ? ErrorCode.ACTIVITY_MALE_FULL : ErrorCode.ACTIVITY_FEMALE_FULL);
             }
         }
@@ -370,4 +393,15 @@ public class ActivityServiceImpl implements ActivityService {
                 : activityParticipantMapper.findByActivityIds(activityIds);
     }
 
+    @Override
+    public boolean isCaptain(Long activityId, Long userId) {
+        // 使用 MyBatis-Plus LambdaQueryWrapper
+        return activityParticipantMapper.selectCount(
+                new LambdaQueryWrapper<ActivityParticipants>()
+                        .eq(ActivityParticipants::getActivityId, activityId)
+                        .eq(ActivityParticipants::getUserId, userId)
+                        .eq(ActivityParticipants::getIsCaptain, true)
+                        .eq(ActivityParticipants::getIsDeleted, false)
+        ) > 0;
+    }
 }

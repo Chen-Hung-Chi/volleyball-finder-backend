@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS users
     fcm_token      VARCHAR(512),
     real_name      VARCHAR(255),
     nickname       VARCHAR(255),
+    phone          VARCHAR(20),
+    is_verified    BOOLEAN                                                 DEFAULT FALSE,
     role           ENUM ('USER', 'SPONSOR', 'ADMIN')                       DEFAULT 'USER',
     gender         ENUM ('MALE', 'FEMALE')                                 DEFAULT 'MALE',
     position       ENUM ('SPIKER', 'SETTER', 'LIBERO', 'NONE')             DEFAULT 'NONE',
@@ -77,8 +79,9 @@ CREATE TABLE IF NOT EXISTS activities
     female_count         INT                                     DEFAULT 0 COMMENT 'Current count of female participants',
     female_priority      BOOLEAN                        NOT NULL DEFAULT FALSE COMMENT 'Female priority for waitlist (true if enabled)',
     amount               INT                                     DEFAULT 0 COMMENT 'Registration fee',
-
-    city                 VARCHAR(50)                    NOT NULL COMMENT 'City',
+    require_verification BOOLEAN                        NOT NULL DEFAULT FALSE COMMENT '是否需要實名認證才能報名',
+    city
+                         VARCHAR(50)                    NOT NULL COMMENT 'City',
     district             VARCHAR(50)                    NOT NULL COMMENT 'District',
 
     created_by           BIGINT                         NOT NULL COMMENT 'Activity creator ID',

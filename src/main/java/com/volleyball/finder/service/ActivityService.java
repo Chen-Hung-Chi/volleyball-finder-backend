@@ -18,7 +18,7 @@ public interface ActivityService {
 
     Activity create(Activity activity);
 
-    Activity update(Long id, ActivityUpdateRequest activityUpdateRequest);
+    Activity update(Long id, ActivityUpdateRequest activityUpdateRequest, Long userId);
 
     void delete(Long id);
 
@@ -33,4 +33,6 @@ public interface ActivityService {
     List<Activity> findByDate(LocalDate date);
 
     List<ActivityParticipantDto> getParticipantsByActivityIds(List<Long> activityIds);
+
+    boolean isCaptain(Long activityId, Long userId);
 }

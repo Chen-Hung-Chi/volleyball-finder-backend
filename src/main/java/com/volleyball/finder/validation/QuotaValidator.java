@@ -5,10 +5,10 @@ import com.volleyball.finder.dto.ActivityUpdateRequest;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-public class QuotaValidator implements ConstraintValidator<QuotaConstraint, ActivityUpdateRequest> {
+public class QuotaValidator implements ConstraintValidator<QuotaConstraint, QuotaValidatable> {
 
     @Override
-    public boolean isValid(ActivityUpdateRequest dto, ConstraintValidatorContext context) {
+    public boolean isValid(QuotaValidatable dto, ConstraintValidatorContext context) {
         if (dto.getMaleQuota() == null || dto.getFemaleQuota() == null || dto.getMaxParticipants() == null)
             return true;
 

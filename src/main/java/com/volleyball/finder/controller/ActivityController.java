@@ -1,19 +1,21 @@
 package com.volleyball.finder.controller;
 
-import com.volleyball.finder.dto.ActivityParticipantDto;
-import com.volleyball.finder.dto.ActivitySearchRequest;
-import com.volleyball.finder.dto.ActivityUpdateRequest;
-import com.volleyball.finder.dto.PageResponse;
+import com.volleyball.finder.dto.*;
 import com.volleyball.finder.entity.Activity;
+import com.volleyball.finder.entity.User;
+import com.volleyball.finder.helper.ActivityAuthHelper;
 import com.volleyball.finder.security.CustomUserDetails;
 import com.volleyball.finder.service.ActivityService;
 import com.volleyball.finder.service.UserService;
 import com.volleyball.finder.util.SecurityUtils;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -22,6 +24,7 @@ import java.util.List;
 public class ActivityController {
     private final ActivityService activityService;
     private final UserService userService;
+    private final ActivityAuthHelper activityAuthHelper;
 
     @GetMapping
     public ResponseEntity<List<Activity>> getAllActivities(@RequestParam(required = false) Long userId) {
@@ -40,10 +43,12 @@ public class ActivityController {
     }
 
     @PostMapping
-    public ResponseEntity<Activity> createActivity(@RequestBody Activity activity) {
-        Long userId = SecurityUtils.getCurrentUserId(userService);
-        activity.setCreatedBy(userId);
-        return ResponseEntity.ok(activityService.create(activity));
+    public ResponseEntity<Activity> createActivity(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                                   @Valid @RequestBody Activity activity) {
+        activity.setCreatedBy(userDetails.getId());
+        var created = activityService.create(activity);
+        var location = URI.create("/api/activities/" + created.getId());
+        return ResponseEntity.created(location).body(created);
     }
 
     @GetMapping("/{id}")
@@ -52,8 +57,16 @@ public class ActivityController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Activity> updateActivity(@PathVariable Long id, @RequestBody ActivityUpdateRequest activityUpdateRequest) {
-        return ResponseEntity.ok(activityService.update(id, activityUpdateRequest));
+    public ResponseEntity<Activity> updateActivity(
+            @PathVariable Long id,
+            @Valid @RequestBody ActivityUpdateRequest activityUpdateRequest,
+            @AuthenticationPrincipal CustomUserDetails userDetails // 可選：判斷權限
+    ) {
+        Activity updated = activityService.update(id, activityUpdateRequest, userDetails.getId());
+        if (updated == null) {
+            return ResponseEntity.notFound().build(); // 404
+        }
+        return ResponseEntity.ok(updated); // 200 + 更新後內容
     }
 
     @DeleteMapping("/{id}")
@@ -88,5 +101,20 @@ public class ActivityController {
     @GetMapping("/search")
     public PageResponse<Activity> search(ActivitySearchRequest request) {
         return activityService.search(request);
+    }
+
+    @GetMapping("/{activityId}/users")
+    public ResponseEntity<List<UserPrivateResponse>> getUserProfiles(
+            @PathVariable Long activityId,
+            @RequestParam List<Long> ids,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        // 權限判斷：只有隊長能查
+        boolean isCaptain = activityAuthHelper.isCaptain(activityId, currentUser.getId());
+        if (!isCaptain) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        // 一次查多筆 user 資料
+        List<UserPrivateResponse> users = userService.getUserPrivateResponseByIds(ids);
+        return ResponseEntity.ok(users);
     }
 }

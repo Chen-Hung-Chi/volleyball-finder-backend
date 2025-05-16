@@ -23,6 +23,8 @@ public class User {
     private Role role;
     private String realName;
     private String nickname;
+    private String phone;
+    private Boolean isVerified;
     private Gender gender;
     private Position position;
     private Level level;
