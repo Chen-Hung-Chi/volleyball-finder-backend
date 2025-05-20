@@ -7,6 +7,5 @@ import lombok.Data;
 @AllArgsConstructor
 public class UserPrivateResponse {
     private Long id;
-    private String realName;
     private String phone;
 }

@@ -158,14 +158,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserPrivateResponse> getUserPrivateResponseByIds(List<Long> ids) {
         QueryWrapper<User> wrapper = new QueryWrapper<>();
-        wrapper.select("id", "real_name", "phone");  // 指定欄位
+        wrapper.select("id", "phone");  // 指定欄位
         wrapper.in("id", ids);
 
         // 查出 User，再轉成 UserPrivateResponse
         List<User> users = userMapper.selectList(wrapper);
 
         return users.stream()
-                .map(user -> new UserPrivateResponse(user.getId(), user.getRealName(), user.getPhone()))
+                .map(user -> new UserPrivateResponse(user.getId(), user.getPhone()))
                 .toList();
     }
 }

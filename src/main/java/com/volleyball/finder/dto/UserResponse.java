@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @Data
 public class UserResponse {
     private Role role;
+    private String realName;
     private String nickname;
     private Boolean isVerified;
     private Gender gender;
