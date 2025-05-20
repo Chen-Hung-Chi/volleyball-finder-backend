@@ -68,14 +68,6 @@ public class ActivityServiceImpl implements ActivityService {
         log.info("Creating new activity: {}", activity);
         activityMapper.insert(activity);
         log.info("Created activity with id: {}", activity.getId());
-
-        ActivityParticipants participant = new ActivityParticipants();
-        participant.setActivityId(activity.getId());
-        participant.setUserId(activity.getCreatedBy());
-        participant.setIsCaptain(true);
-
-        activityParticipantMapper.insert(participant);
-
         return activity;
     }
 
@@ -111,25 +103,29 @@ public class ActivityServiceImpl implements ActivityService {
 
         // ── 1. 取資料並做前置驗證 ────────────────────────────────
         var activity = getExistingActivity(activityId, userId);   // 404 handled inside
-        var user = getExistingUser(userId);                  // 404 handled inside
+        var user = getExistingUser(userId);                       // 404 handled inside
 
         rejectIfAlreadyJoined(activityId, userId);                // 已加入
         rejectIfInCooldown(activityId, userId);                   // 冷卻 30 min
         rejectIfNeedRealName(activity, user);                     // 實名制
-
         // ── 2. 判斷是否進候補 (含女生優先邏輯) ────────────────────
         var isWaiting = shouldWait(activity, user);
+        var isCapitan = isCapitan(activity, user);
 
         // ── 3. 檢查名額 / 性別限制 (考慮正取或候補) ────────────────
         rejectIfLimitsReached(activity, user, isWaiting);
 
         // ── 4. 寫入資料 & 更新人數 ────────────────────────────────
-        activityMapper.joinParticipant(activityId, userId, isWaiting);
+        activityMapper.joinParticipant(activityId, userId, isWaiting, isCapitan);
         activityMapper.syncCurrentParticipants(activityId);
 
         if (!isWaiting) {   // 只有正取才推播
             publishJoinNotification(activity, user);
         }
+    }
+
+    private boolean isCapitan(Activity activity, User user) {
+        return Objects.equals(activity.getCreatedBy(), user.getId());
     }
 
     /**

@@ -54,12 +54,13 @@ public interface ActivityMapper extends BaseMapper<Activity> {
 
     @Insert("""
               INSERT INTO activity_participants
-                (activity_id, user_id, is_waiting)
-              VALUES (#{activityId}, #{userId}, #{isWaiting})
+                (activity_id, user_id, is_waiting, is_captain)
+              VALUES (#{activityId}, #{userId}, #{isWaiting}, #{isCaptain})
             """)
     void joinParticipant(@Param("activityId") Long activityId,
                          @Param("userId") Long userId,
-                         @Param("isWaiting") boolean isWaiting);
+                         @Param("isWaiting") boolean isWaiting,
+                         @Param("isCaptain") boolean isCaptain );
 
     @Update("UPDATE activity_participants SET is_deleted = TRUE, updated_at = NOW() WHERE activity_id = #{activityId} AND user_id = #{userId} AND is_deleted = FALSE")
     void removeParticipant(@Param("activityId") Long activityId, @Param("userId") Long userId);
