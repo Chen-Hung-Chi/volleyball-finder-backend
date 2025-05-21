@@ -16,7 +16,7 @@ public interface ActivityMapper extends BaseMapper<Activity> {
     @Select("SELECT a.*, " +
             "CASE WHEN ap.user_id = #{userId} AND ap.is_captain = true THEN true ELSE false END as is_captain " +
             "FROM activities a " +
-            "LEFT JOIN activity_participants ap ON a.id = ap.activity_id AND ap.user_id = #{userId} " +
+            "LEFT JOIN activity_participants ap ON a.id = ap.activity_id AND ap.user_id = #{userId}  AND ap.is_deleted = FALSE " +
             "WHERE a.id = #{id}")
     Activity findById(@Param("id") Long id, @Param("userId") Long userId);
 
@@ -49,18 +49,23 @@ public interface ActivityMapper extends BaseMapper<Activity> {
     @Select("SELECT EXISTS (SELECT 1 FROM activity_participants WHERE activity_id = #{activityId} AND user_id = #{userId} AND is_deleted = FALSE)")
     boolean isParticipant(@Param("activityId") Long activityId, @Param("userId") Long userId);
 
-    @Select("SELECT * FROM activity_participants WHERE activity_id = #{activityId} AND user_id = #{userId} LIMIT 1")
-    ActivityParticipants findParticipant(@Param("activityId") Long activityId, @Param("userId") Long userId);
+    @Select("SELECT * FROM activity_participants WHERE activity_id = #{activityId} AND user_id = #{userId} and is_deleted = FALSE LIMIT 1")
+    ActivityParticipants findActiveParticipant(@Param("activityId") Long activityId, @Param("userId") Long userId);
 
     @Insert("""
-              INSERT INTO activity_participants
-                (activity_id, user_id, is_waiting, is_captain)
-              VALUES (#{activityId}, #{userId}, #{isWaiting}, #{isCaptain})
-            """)
-    void joinParticipant(@Param("activityId") Long activityId,
-                         @Param("userId") Long userId,
-                         @Param("isWaiting") boolean isWaiting,
-                         @Param("isCaptain") boolean isCaptain );
+        INSERT INTO activity_participants
+          (activity_id, user_id, is_waiting, is_captain, is_deleted)
+        VALUES (#{activityId}, #{userId}, #{isWaiting}, #{isCaptain}, 0)
+        ON DUPLICATE KEY UPDATE
+          is_waiting = VALUES(is_waiting),
+          is_captain = VALUES(is_captain),
+          is_deleted = 0,
+          updated_at = NOW()
+        """)
+    void joinOrUpdateParticipant(@Param("activityId") Long activityId,
+                                 @Param("userId") Long userId,
+                                 @Param("isWaiting") boolean isWaiting,
+                                 @Param("isCaptain") boolean isCaptain );
 
     @Update("UPDATE activity_participants SET is_deleted = TRUE, updated_at = NOW() WHERE activity_id = #{activityId} AND user_id = #{userId} AND is_deleted = FALSE")
     void removeParticipant(@Param("activityId") Long activityId, @Param("userId") Long userId);

@@ -116,7 +116,7 @@ public class ActivityServiceImpl implements ActivityService {
         rejectIfLimitsReached(activity, user, isWaiting);
 
         // ── 4. 寫入資料 & 更新人數 ────────────────────────────────
-        activityMapper.joinParticipant(activityId, userId, isWaiting, isCapitan);
+        activityMapper.joinOrUpdateParticipant(activityId, userId, isWaiting, isCapitan);
         activityMapper.syncCurrentParticipants(activityId);
 
         if (!isWaiting) {   // 只有正取才推播
@@ -268,12 +268,8 @@ public class ActivityServiceImpl implements ActivityService {
         var activity = Optional.ofNullable(findById(activityId, userId))
                 .orElseThrow(() -> new ApiException(ErrorCode.ACTIVITY_NOT_FOUND));
 
-        var participant = Optional.ofNullable(activityMapper.findParticipant(activityId, userId))
+        Optional.ofNullable(activityMapper.findActiveParticipant(activityId, userId))
                 .orElseThrow(() -> new ApiException(ErrorCode.ACTIVITY_NOT_JOINED));
-
-        if (participant.getIsDeleted()) {
-            throw new ApiException(ErrorCode.ACTIVITY_LEAVED);
-        }
 
         // ==== 2. 更新狀態 ====
         activityMapper.removeParticipant(activityId, userId);
