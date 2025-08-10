@@ -251,17 +251,21 @@ FROM (SELECT 1 + numbers.n + seq.n * 10 AS n
 -- ─────────────────── Test Data: Participants ───────────────────
 INSERT INTO activity_participants (activity_id, user_id, is_captain)
 WITH RECURSIVE
-    activity_users AS (SELECT a.id                                                  AS activity_id,
-                              u.id                                                  AS user_id,
-                              ROW_NUMBER() OVER (PARTITION BY a.id ORDER BY RAND()) AS rn,
-                              a.max_participants,
-                              a.current_participants
-                       FROM activities a
-                                CROSS JOIN users u
-                       WHERE u.id <> a.created_by),
-    filtered_users AS (SELECT activity_id, user_id, rn, max_participants, current_participants
-                       FROM activity_users
-                       WHERE rn <= current_participants + 6)
+    activity_users AS (
+        SELECT a.id AS activity_id,
+               u.id AS user_id,
+               ROW_NUMBER() OVER (PARTITION BY a.id ORDER BY CRC32(CONCAT(a.id, '-', u.id))) AS rn, -- MySQL 9.4 requires a single deterministic numeric/temporal ORDER BY in window
+               a.max_participants,
+               a.current_participants
+        FROM activities a
+                 CROSS JOIN users u
+        WHERE u.id <> a.created_by
+    ),
+    filtered_users AS (
+        SELECT activity_id, user_id, rn, max_participants, current_participants
+        FROM activity_users
+        WHERE rn <= current_participants + 6
+    )
 SELECT activity_id, user_id, FALSE
 FROM filtered_users
 WHERE RAND() < 0.7;
